@@ -14,6 +14,8 @@ const GameAudio = (function () {
   // Engine voice (persistent while racing)
   let engOsc1 = null, engOsc2 = null, engFilter = null, engGain = null;
   let engineOn = false;
+  // Tire-screech voice for drifting (looped noise, gated by setSkid)
+  let skidSrc = null, skidFilter = null, skidGain = null;
 
   // Music sequencer
   let musicOn = false;
@@ -200,6 +202,23 @@ const GameAudio = (function () {
     engFilter.connect(engGain).connect(master);
     engOsc1.start();
     engOsc2.start();
+
+    // looping noise through a bandpass = tire screech, silent until drifting
+    const len = Math.ceil(ctx.sampleRate * 0.5);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    skidSrc = ctx.createBufferSource();
+    skidSrc.buffer = buf;
+    skidSrc.loop = true;
+    skidFilter = ctx.createBiquadFilter();
+    skidFilter.type = "bandpass";
+    skidFilter.frequency.value = 950;
+    skidFilter.Q.value = 1.4;
+    skidGain = ctx.createGain();
+    skidGain.gain.value = 0;
+    skidSrc.connect(skidFilter).connect(skidGain).connect(master);
+    skidSrc.start();
     engineOn = true;
   }
 
@@ -209,7 +228,20 @@ const GameAudio = (function () {
     engGain.gain.linearRampToValueAtTime(0, t0 + 0.2);
     engOsc1.stop(t0 + 0.3);
     engOsc2.stop(t0 + 0.3);
+    skidGain.gain.linearRampToValueAtTime(0, t0 + 0.1);
+    skidSrc.stop(t0 + 0.2);
+    skidSrc = null;
     engineOn = false;
+  }
+
+  // intensity 0..1; wobble the filter so the screech feels alive
+  function setSkid(intensity) {
+    if (!engineOn || !skidGain) return;
+    const v = Math.max(0, Math.min(1, intensity));
+    skidGain.gain.value = v * 0.16;
+    if (v > 0) {
+      skidFilter.frequency.value = 750 + v * 500 + Math.sin(now() * 30) * 90;
+    }
   }
 
   // speed01: 0..1, boosting / offroad shape the tone
@@ -466,6 +498,7 @@ const GameAudio = (function () {
     startEngine,
     stopEngine,
     setEngine,
+    setSkid,
     coin,
     boostPad,
     driftBoost,

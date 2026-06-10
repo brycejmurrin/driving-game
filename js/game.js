@@ -161,7 +161,7 @@
       // effect timers (spinT is shared: missiles spin AI out too)
       boostT: 0, spinT: 0, slideT: 0, hopT: 0,
       driftCharge: 0, driftDir: 0, wasDrifting: false,
-      steerVis: 0,
+      steerVis: 0, driftVis: 0,
       weapon: null,
     };
   }
@@ -248,8 +248,9 @@
     if (drifting) {
       p.driftDir = Math.sign(steer);
       p.driftCharge += dt * Math.abs(steer);
-      if (Math.random() < dt * 4) GameAudio.skid();
     }
+    GameAudio.setSkid(drifting ? 0.55 + 0.45 * Math.min(1, p.driftCharge) : 0);
+    p.driftVis += ((drifting ? p.driftDir : 0) - p.driftVis) * Math.min(1, 9 * dt);
     if (!wantDrift) {
       if (p.wasDrifting && p.driftCharge > 0.6) {
         p.boostT = Math.max(p.boostT, p.driftCharge > 1.3 ? 1.5 : 0.9);
@@ -1009,7 +1010,7 @@
       Sprites.kart(px, py, kw, player.color, {
         steer: player.steerVis + spin * 2,
         hop: Math.max(0, player.hopT) * 3,
-        drift: player.wasDrifting && player.driftCharge > 0 ? player.driftDir : 0,
+        drift: player.driftVis,
         charge: player.driftCharge,
         boost: player.boostT > 0,
         time: raceT,

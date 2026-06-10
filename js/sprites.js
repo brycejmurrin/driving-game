@@ -27,23 +27,29 @@ const Sprites = (function () {
     const h = w * 0.52;
     y -= hop;
 
-    const lean = steer * 0.14 + drift * 0.24;
+    const lean = steer * 0.14;
+    // drifting: the rear swings OUT, opposite the turn (tilt right ->
+    // nose right, tail kicks left), top leans into the turn
+    const kick = -drift;
+    const rear = kick * w * 0.20;      // applied to tires / bumper / glow
+    const nose = -kick * w * 0.12;     // applied to cockpit / spoiler / helmet
     const by = y;            // bottom (wheel contact)
     const skew = lean * w * 0.35;
+    const topShift = nose - rear * 0.8;
 
     // underglow
-    R.circle(x, by - h * 0.04, w * 0.5, shade(color, 1.2, 0.13), 14);
+    R.circle(x + rear * 0.6, by - h * 0.04, w * 0.5, shade(color, 1.2, 0.13), 14);
 
     // rear tires
     const wy = by - h * 0.22;
     const ww = w * 0.17, wh = h * 0.44;
-    R.rotQuad(x - w * 0.42 + skew * 0.25, wy, ww, wh, lean * 0.4, [0.04, 0.04, 0.07, 1]);
-    R.rotQuad(x + w * 0.42 + skew * 0.25, wy, ww, wh, lean * 0.4, [0.04, 0.04, 0.07, 1]);
-    R.circle(x - w * 0.42 + skew * 0.25, wy, ww * 0.2, shade(color, 1.4), 8);
-    R.circle(x + w * 0.42 + skew * 0.25, wy, ww * 0.2, shade(color, 1.4), 8);
+    R.rotQuad(x - w * 0.42 + skew * 0.25 + rear, wy, ww, wh, lean * 0.4 + kick * 0.3, [0.04, 0.04, 0.07, 1]);
+    R.rotQuad(x + w * 0.42 + skew * 0.25 + rear, wy, ww, wh, lean * 0.4 + kick * 0.3, [0.04, 0.04, 0.07, 1]);
+    R.circle(x - w * 0.42 + skew * 0.25 + rear, wy, ww * 0.2, shade(color, 1.4), 8);
+    R.circle(x + w * 0.42 + skew * 0.25 + rear, wy, ww * 0.2, shade(color, 1.4), 8);
 
     // bumper: wide low block between the tires
-    const bx = x + skew * 0.4;
+    const bx = x + skew * 0.4 + rear * 0.8;
     R.quadP(
       bx - w * 0.34, by - h * 0.40,
       bx + w * 0.34, by - h * 0.40,
@@ -56,8 +62,8 @@ const Sprites = (function () {
 
     // cockpit: narrower trapezoid above the bumper
     R.quadP(
-      bx - w * 0.20 - skew * 0.3, by - h * 0.62,
-      bx + w * 0.20 - skew * 0.3, by - h * 0.62,
+      bx - w * 0.20 - skew * 0.3 + topShift, by - h * 0.62,
+      bx + w * 0.20 - skew * 0.3 + topShift, by - h * 0.62,
       bx + w * 0.27, by - h * 0.38,
       bx - w * 0.27, by - h * 0.38,
       shade(color, 0.7)
@@ -65,19 +71,19 @@ const Sprites = (function () {
 
     // spoiler: thin raised wing
     const sy = by - h * 0.78;
-    R.quad(bx - w * 0.06 - skew * 0.4, sy, w * 0.04, h * 0.16, shade(color, 0.55));
-    R.quad(bx + w * 0.02 - skew * 0.4, sy, w * 0.04, h * 0.16, shade(color, 0.55));
+    R.quad(bx - w * 0.06 - skew * 0.4 + topShift, sy, w * 0.04, h * 0.16, shade(color, 0.55));
+    R.quad(bx + w * 0.02 - skew * 0.4 + topShift, sy, w * 0.04, h * 0.16, shade(color, 0.55));
     R.quadP(
-      bx - w * 0.33 - skew * 0.5, sy - h * 0.10,
-      bx + w * 0.33 - skew * 0.5, sy - h * 0.10,
-      bx + w * 0.29 - skew * 0.45, sy,
-      bx - w * 0.29 - skew * 0.45, sy,
+      bx - w * 0.33 - skew * 0.5 + topShift, sy - h * 0.10,
+      bx + w * 0.33 - skew * 0.5 + topShift, sy - h * 0.10,
+      bx + w * 0.29 - skew * 0.45 + topShift, sy,
+      bx - w * 0.29 - skew * 0.45 + topShift, sy,
       shade(color, 1.1)
     );
 
     // driver helmet
-    R.circle(bx - skew * 0.35, by - h * 0.66, w * 0.095, [0.95, 0.95, 1.0, 1], 10);
-    R.circle(bx - skew * 0.35, by - h * 0.66, w * 0.095, shade(color, 0.5, 0.4), 10);
+    R.circle(bx - skew * 0.35 + topShift, by - h * 0.66, w * 0.095, [0.95, 0.95, 1.0, 1], 10);
+    R.circle(bx - skew * 0.35 + topShift, by - h * 0.66, w * 0.095, shade(color, 0.5, 0.4), 10);
 
     // exhaust flames while boosting
     if (o.boost) {
