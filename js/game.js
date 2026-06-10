@@ -55,6 +55,9 @@
   const steerRBtn = document.getElementById("steerright");
   const soundBtn = document.getElementById("soundbtn");
   const elAudioState = document.getElementById("audiostate");
+  const helpBtn = document.getElementById("helpbtn");
+  const howToPlay = document.getElementById("howtoplay");
+  const howToPlayClose = document.getElementById("howtoplay-close");
   const isTouch = "ontouchstart" in window;
 
   if (!Renderer.init(canvas)) {
@@ -191,6 +194,8 @@
     countT = 0;
     countStep = 0;
     overlay.classList.add("hidden");
+    howToPlay.hidden = true;
+    helpBtn.hidden = true;
     trackSelect.hidden = true;
     pauseBtn.hidden = false;
     driftBtn.hidden = !isTouch;
@@ -650,6 +655,7 @@
     elPrompt.textContent = "TAP TO START";
     overlay.classList.remove("hidden");
     updateSoundBtn();
+    updateHelpBtn();
     updateHud();
   }
 
@@ -668,6 +674,7 @@
     trackSelect.hidden = false;
     overlay.classList.remove("hidden");
     updateSoundBtn();
+    updateHelpBtn();
   }
 
   function buildTrackButtons() {
@@ -800,6 +807,23 @@
     soundBtn.textContent = "♪ " + (GameAudio.muted ? "OFF" : "ON");
     soundBtn.classList.toggle("off", GameAudio.muted);
   }
+
+  function updateHelpBtn() {
+    helpBtn.hidden = !(state === "menu" || state === "select");
+  }
+
+  function openHowToPlay(e) {
+    if (e) { e.stopPropagation(); if (e.cancelable) e.preventDefault(); }
+    howToPlay.hidden = false;
+  }
+  function closeHowToPlay(e) {
+    if (e) { e.stopPropagation(); if (e.cancelable) e.preventDefault(); }
+    howToPlay.hidden = true;
+  }
+  helpBtn.addEventListener("click", openHowToPlay);
+  helpBtn.addEventListener("touchend", openHowToPlay);
+  howToPlayClose.addEventListener("click", closeHowToPlay);
+  howToPlayClose.addEventListener("touchend", closeHowToPlay);
   function onSoundToggle(e) {
     e.stopPropagation();
     if (e.cancelable) e.preventDefault();

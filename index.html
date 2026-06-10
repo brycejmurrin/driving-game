@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-180.png">
-<link rel="stylesheet" href="css/style.css?v=12">
+<link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -55,6 +55,61 @@
   <div id="trackselect" hidden></div>
   <p id="prompt">TAP TO START</p>
   <p id="audiostate"></p>
+  <button id="helpbtn" hidden>HOW TO PLAY</button>
+</div>
+
+<div id="howtoplay" hidden>
+  <div id="howtoplay-inner">
+    <h2>HOW TO PLAY</h2>
+    <button id="howtoplay-close">&#10005;</button>
+
+    <section>
+      <h3>STEERING</h3>
+      <p><span class="key">TILT</span> Tilt your phone left/right &mdash; gyro calibrates at countdown</p>
+      <p><span class="key">TOUCH</span> Touch-hold left/right half of screen when tilt is off</p>
+      <p><span class="key">BUTTONS</span> &#9664; &#9654; on-screen arrows (shown when tilt off)</p>
+      <p><span class="key">KEYBOARD</span> &#8592;&#8594; or A D</p>
+    </section>
+
+    <section>
+      <h3>DRIFT &amp; BOOST</h3>
+      <p><span class="key">DRIFT</span> Hold the DRIFT button (or Space) through a corner</p>
+      <p>Sparks turn <span class="hi-blue">blue</span> &rarr; release for a big speed boost</p>
+      <p>Drift hop also clears cones and oil slicks</p>
+    </section>
+
+    <section>
+      <h3>WEAPONS</h3>
+      <p>Drive through a <span class="hi-y">?</span> box to collect a random weapon, then tap &#128293; to fire</p>
+      <p><span class="key">&#128640;</span> Missile &mdash; homes in on the kart ahead, spins it out</p>
+      <p><span class="key">&#9889;</span> Boost &mdash; instant speed burst</p>
+      <p><span class="key">&#128167;</span> Oil &mdash; drops a slick behind you to scramble pursuers</p>
+    </section>
+
+    <section>
+      <h3>TRACK HAZARDS &amp; PICKUPS</h3>
+      <p><span class="key">COINS</span> 25 pts each</p>
+      <p><span class="key">BOOST PADS</span> Glowing chevrons &mdash; free speed boost</p>
+      <p><span class="key">JUMP RAMPS</span> Launch into the air; hazards can&rsquo;t hit you while airborne</p>
+      <p><span class="key">CONES</span> Spin you out &mdash; drift-hop over them</p>
+      <p><span class="key">OIL</span> Scrambles steering &mdash; drift-hop clears it</p>
+    </section>
+
+    <section>
+      <h3>SCORING</h3>
+      <p>Finish bonus: 1st&nbsp;1200 &middot; 2nd&nbsp;900 &middot; 3rd&nbsp;650 &middot; 4th&nbsp;450 &middot; 5th&nbsp;300 &middot; 6th&nbsp;200</p>
+      <p>Score accumulates across all Grand Prix races</p>
+      <p>High score is saved locally in your browser</p>
+    </section>
+
+    <section>
+      <h3>EXTRA</h3>
+      <p><span class="key">BRAKE</span> Touch bottom of screen or &#8595; / S key</p>
+      <p><span class="key">FIRE</span> &#128293; button or X key</p>
+      <p><span class="key">PAUSE</span> &#10074;&#10074; button or P / Esc &mdash; recalibrate tilt here</p>
+      <p><span class="key">SOUND</span> &#9834; button in the corner, or pause menu</p>
+    </section>
+  </div>
 </div>
 
 <button id="soundbtn" hidden>&#9834; ON</button>
@@ -67,11 +122,11 @@
   <p>Sorry &mdash; your browser does not support WebGL.</p>
 </div>
 
-<script src="js/renderer.js?v=12"></script>
-<script src="js/input.js?v=12"></script>
-<script src="js/tracks.js?v=12"></script>
-<script src="js/sprites.js?v=12"></script>
-<script src="js/audio.js?v=12"></script>
-<script src="js/game.js?v=12"></script>
+<script src="js/renderer.js?v=13"></script>
+<script src="js/input.js?v=13"></script>
+<script src="js/tracks.js?v=13"></script>
+<script src="js/sprites.js?v=13"></script>
+<script src="js/audio.js?v=13"></script>
+<script src="js/game.js?v=13"></script>
 </body>
 </html>

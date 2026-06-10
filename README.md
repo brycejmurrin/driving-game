@@ -1,5 +1,7 @@
 # Neon Drift
 
+**[Play live on GitHub Pages &rarr;](https://brycejmurrin.github.io/driving-game/)**
+
 A synthwave kart racer built with raw WebGL — no frameworks, no
 dependencies, no build step. Runs in any modern browser on desktop or
 mobile. A sibling of [Neon Swarm](https://github.com/brycejmurrin/project1)
