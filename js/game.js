@@ -53,6 +53,7 @@
   const driftBtn = document.getElementById("driftbtn");
   const steerLBtn = document.getElementById("steerleft");
   const steerRBtn = document.getElementById("steerright");
+  const soundBtn = document.getElementById("soundbtn");
   const isTouch = "ontouchstart" in window;
 
   if (!Renderer.init(canvas)) {
@@ -192,6 +193,7 @@
     Input.reset();
     Input.calibrate();
     updateFireBtn();
+    updateSoundBtn();
     announce(track.name, 1400);
     GameAudio.startEngine();
     GameAudio.startMusic();
@@ -570,6 +572,7 @@
     elSubtitle.textContent = tiltHint();
     elPrompt.textContent = "TAP TO START";
     overlay.classList.remove("hidden");
+    updateSoundBtn();
     updateHud();
   }
 
@@ -587,6 +590,7 @@
     if (!trackSelect.childElementCount) buildTrackButtons();
     trackSelect.hidden = false;
     overlay.classList.remove("hidden");
+    updateSoundBtn();
   }
 
   function buildTrackButtons() {
@@ -712,6 +716,25 @@
   });
   fireBtn.addEventListener("touchstart", function (e) { e.preventDefault(); Input.pressFire(); }, { passive: false });
   fireBtn.addEventListener("mousedown", function () { Input.pressFire(); });
+
+  // sound toggle on the title/select screens; plays a chime as proof of life
+  function updateSoundBtn() {
+    soundBtn.hidden = !(state === "menu" || state === "select");
+    soundBtn.textContent = "♪ " + (GameAudio.muted ? "OFF" : "ON");
+    soundBtn.classList.toggle("off", GameAudio.muted);
+  }
+  function onSoundToggle(e) {
+    e.stopPropagation();
+    if (e.cancelable) e.preventDefault();
+    GameAudio.init();
+    GameAudio.setMuted(!GameAudio.muted);
+    localStorage.setItem("neondrift.sound", GameAudio.muted ? "off" : "on");
+    if (!GameAudio.muted) GameAudio.coin();
+    updateSoundBtn();
+    refreshPauseLabels();
+  }
+  soundBtn.addEventListener("click", onSoundToggle);
+  soundBtn.addEventListener("touchend", onSoundToggle);
 
   // ◀ ▶ arrow steering, shown when tilt isn't doing the steering
   let steerLHeld = false, steerRHeld = false;

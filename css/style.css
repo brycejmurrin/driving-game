@@ -271,6 +271,37 @@ body.btnsteer #driftbtn {
   transform: scale(0.94);
 }
 
+#soundbtn[hidden] {
+  display: none;
+}
+
+#soundbtn {
+  position: fixed;
+  top: calc(48px + env(safe-area-inset-top));
+  right: 10px;
+  min-width: 72px;
+  height: 44px;
+  border-radius: 22px;
+  background: rgba(10, 16, 34, 0.55);
+  border: 1px solid rgba(51, 230, 242, 0.5);
+  color: #bfeaff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-family: inherit;
+  z-index: 5;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#soundbtn.off {
+  color: #ff7a9c;
+  border-color: rgba(255, 122, 156, 0.6);
+}
+
+#soundbtn:active {
+  transform: scale(0.94);
+}
+
 #pausemenu {
   position: fixed;
   inset: 0;

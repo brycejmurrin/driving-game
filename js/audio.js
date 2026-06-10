@@ -20,13 +20,12 @@ const GameAudio = (function () {
   let musicTimer = null;
   let step = 0;
 
-  function init() {
-    if (ctx) {
-      resumeIfNeeded();
-      return;
-    }
+  let listenersAttached = false;
+  let rebuildTries = 0;
+
+  function createCtx() {
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
+    if (!AC) return false;
     ctx = new AC();
     master = ctx.createGain();
     master.gain.value = muted ? 0 : 0.8;
@@ -34,32 +33,68 @@ const GameAudio = (function () {
 
     // A fresh context often starts suspended even inside a tap (iOS) —
     // resume it and play one silent sample, the canonical unlock.
-    resumeIfNeeded();
+    if (ctx.state !== "running") ctx.resume();
     const buf = ctx.createBuffer(1, 1, 22050);
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.connect(ctx.destination);
     src.start(0);
+    return true;
+  }
 
-    // iPhone mutes WebAudio with the ringer/silent switch unless the
-    // page is also playing an <audio> element, which promotes the audio
-    // session to media playback. Loop a tiny silent wav forever.
-    unmuteEl = document.createElement("audio");
-    unmuteEl.loop = true;
-    unmuteEl.setAttribute("playsinline", "");
-    unmuteEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
-    unmuteEl.play().catch(function () {});
+  function init() {
+    if (ctx) {
+      resumeIfNeeded();
+      return;
+    }
+    if (!createCtx()) return;
 
-    // iOS suspends the context on lock/app-switch and never resumes it
-    // by itself; recover on the next gesture or on returning to the tab.
-    window.addEventListener("touchend", resumeIfNeeded, true);
-    window.addEventListener("pointerdown", resumeIfNeeded, true);
-    window.addEventListener("keydown", resumeIfNeeded, true);
-    document.addEventListener("visibilitychange", onVisibility);
+    if (!listenersAttached) {
+      listenersAttached = true;
+
+      // iPhone mutes WebAudio with the ringer/silent switch unless the
+      // page is also playing an <audio> element, which promotes the audio
+      // session to media playback. Loop a tiny silent wav forever.
+      unmuteEl = document.createElement("audio");
+      unmuteEl.loop = true;
+      unmuteEl.setAttribute("playsinline", "");
+      unmuteEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+      unmuteEl.play().catch(function () {});
+
+      // iOS suspends the context on lock/app-switch and never resumes it
+      // by itself; recover on the next gesture or on returning to the tab.
+      window.addEventListener("touchend", resumeIfNeeded, true);
+      window.addEventListener("pointerdown", resumeIfNeeded, true);
+      window.addEventListener("keydown", resumeIfNeeded, true);
+      document.addEventListener("visibilitychange", onVisibility);
+    }
   }
 
   function resumeIfNeeded() {
-    if (ctx && ctx.state !== "running") ctx.resume();
+    if (!ctx || ctx.state === "running") return;
+    ctx.resume();
+    // iOS can leave a context permanently stuck (after a phone call,
+    // an "interrupted" state, or a hardware sample-rate change). If
+    // resume doesn't take, throw the context away and rebuild it.
+    setTimeout(function () {
+      if (ctx && ctx.state !== "running" && rebuildTries < 3) {
+        rebuildTries++;
+        rebuildCtx();
+      }
+    }, 400);
+  }
+
+  function rebuildCtx() {
+    const wasMusic = musicOn;
+    const wasEngine = engineOn;
+    if (musicOn) stopMusic();
+    engineOn = false;               // old nodes died with the old context
+    try { ctx.close(); } catch (e) { /* already closed */ }
+    ctx = null;
+    master = null;
+    if (!createCtx()) return;
+    if (wasMusic) startMusic();
+    if (wasEngine) startEngine();
   }
 
   let resumeMusic = false;
