@@ -441,54 +441,61 @@ body.btnsteer #firebtn {
   transform: scale(0.9);
 }
 
-.platform-label {
-  margin: 24px 0 14px;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 4px;
-  padding: 8px 14px;
-  border-radius: 6px;
-  text-align: center;
+/* ---- HOW TO PLAY tabs ---- */
+
+.htp-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
 }
 
-.ios-label {
-  background: rgba(51, 230, 242, 0.12);
-  border: 1px solid rgba(51, 230, 242, 0.4);
+.htp-tab {
+  flex: 1;
+  padding: 8px 4px;
+  background: rgba(10, 16, 34, 0.6);
+  border: 1px solid rgba(51, 230, 242, 0.25);
+  border-radius: 7px;
+  color: rgba(191, 234, 255, 0.55);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.htp-tab.active {
+  background: rgba(51, 230, 242, 0.15);
+  border-color: rgba(51, 230, 242, 0.7);
   color: #33e6f2;
 }
 
-.pc-label {
-  background: rgba(255, 100, 200, 0.10);
-  border: 1px solid rgba(255, 100, 200, 0.4);
-  color: #ff80d8;
-  text-shadow: 0 0 12px rgba(255, 100, 200, 0.5);
+.htp-tab:active {
+  transform: scale(0.96);
 }
 
-.shared-label {
-  background: rgba(255, 215, 0, 0.08);
-  border: 1px solid rgba(255, 215, 0, 0.35);
-  color: #ffd740;
+.htp-panel[hidden] {
+  display: none;
 }
 
-#howtoplay-inner section {
-  margin-bottom: 22px;
-  border-top: 1px solid rgba(51, 230, 242, 0.10);
-  padding-top: 14px;
+.htp-panel dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 14px;
+  align-items: baseline;
 }
 
-#howtoplay-inner h3 {
+.htp-panel dt {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 3px;
-  color: rgba(51, 230, 242, 0.75);
-  margin-bottom: 10px;
+  letter-spacing: 1.5px;
+  color: #33e6f2;
+  white-space: nowrap;
 }
 
-#howtoplay-inner p {
+.htp-panel dd {
   font-size: 14px;
-  line-height: 1.75;
+  line-height: 1.6;
   color: #cce8ff;
-  letter-spacing: 0.5px;
 }
 
 .key {
@@ -496,12 +503,11 @@ body.btnsteer #firebtn {
   background: rgba(51, 230, 242, 0.12);
   border: 1px solid rgba(51, 230, 242, 0.35);
   border-radius: 5px;
-  padding: 1px 7px;
-  font-size: 12px;
+  padding: 1px 6px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   color: #33e6f2;
-  margin-right: 4px;
 }
 
 .hi-blue {

@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-180.png">
-<link rel="stylesheet" href="css/style.css?v=14">
+<link rel="stylesheet" href="css/style.css?v=15">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -63,79 +63,58 @@
     <h2>HOW TO PLAY</h2>
     <button id="howtoplay-close">&#10005;</button>
 
-    <div class="platform-label ios-label">&#128241; iOS / MOBILE</div>
+    <div class="htp-tabs">
+      <button class="htp-tab active" data-tab="ios">&#128241; iOS</button>
+      <button class="htp-tab" data-tab="pc">&#128187; DESKTOP</button>
+      <button class="htp-tab" data-tab="track">&#127956; TRACK</button>
+    </div>
 
-    <section>
-      <h3>STEERING &mdash; TILT ON (default)</h3>
-      <p>Tilt your phone left/right to steer &mdash; gyro calibrates at the countdown</p>
-      <p>iOS will ask motion permission on your first tap &mdash; allow it</p>
-      <p>If neutral drifts, tap <span class="key">PAUSE</span> then <span class="key">RECALIBRATE TILT</span></p>
-    </section>
+    <div class="htp-panel" data-panel="ios">
+      <dl>
+        <dt>STEER (TILT)</dt>
+        <dd>Tilt left/right &mdash; calibrates at countdown &mdash; allow motion permission on first tap</dd>
+        <dt>STEER (NO TILT)</dt>
+        <dd>&#9664; &#9654; buttons at bottom corners &mdash; toggle <span class="key">TILT</span> in pause menu</dd>
+        <dt>DRIFT/BOOST</dt>
+        <dd>Hold <span class="key">DRIFT</span> (bottom-right) through corner &rarr; sparks turn <span class="hi-blue">blue</span> &rarr; release = boost. Hop clears cones &amp; oil</dd>
+        <dt>WEAPONS</dt>
+        <dd>Drive through <span class="hi-y">?</span> box. Tap weapon button to fire &mdash; bottom-left with tilt, center-bottom without</dd>
+        <dt>&#128640; MISSILE</dt><dd>Homes in on kart ahead, spins it out</dd>
+        <dt>&#9889; BOOST</dt><dd>Instant speed burst</dd>
+        <dt>&#128167; OIL</dt><dd>Drops a slick behind you</dd>
+        <dt>PAUSE</dt>
+        <dd>&#10074;&#10074; top-right during race &mdash; recalibrate tilt here</dd>
+        <dt>SOUND</dt>
+        <dd>&#9834; top-right on menu &amp; select screens</dd>
+      </dl>
+    </div>
 
-    <section>
-      <h3>STEERING &mdash; TILT OFF</h3>
-      <p><span class="key">&#9664;</span> <span class="key">&#9654;</span> Arrow buttons appear at bottom-left and bottom-right</p>
-      <p>Toggle tilt off/on in the pause menu &rarr; <span class="key">TILT</span></p>
-    </section>
+    <div class="htp-panel" data-panel="pc" hidden>
+      <dl>
+        <dt>STEER</dt><dd><span class="key">&#8592; &#8594;</span> or <span class="key">A</span> <span class="key">D</span></dd>
+        <dt>DRIFT/BOOST</dt><dd>Hold <span class="key">Space</span> through corner, release = boost</dd>
+        <dt>FIRE</dt><dd><span class="key">X</span> key &mdash; or click the <span class="key">FIRE</span> button (bottom-left, always visible; lights up with weapon icon on pickup)</dd>
+        <dt>BRAKE</dt><dd><span class="key">&#8595;</span> or <span class="key">S</span></dd>
+        <dt>PAUSE</dt><dd><span class="key">P</span> or <span class="key">Esc</span></dd>
+        <dt>WEAPONS</dt>
+        <dd>Drive through <span class="hi-y">?</span> box to load a weapon, then fire</dd>
+        <dt>&#128640; MISSILE</dt><dd>Homes in on kart ahead, spins it out</dd>
+        <dt>&#9889; BOOST</dt><dd>Instant speed burst</dd>
+        <dt>&#128167; OIL</dt><dd>Drops a slick behind you</dd>
+      </dl>
+    </div>
 
-    <section>
-      <h3>DRIFT &amp; BOOST &mdash; iOS</h3>
-      <p><span class="key">DRIFT</span> Hold the DRIFT button (bottom-right) through a corner</p>
-      <p>Sparks turn <span class="hi-blue">blue</span> &rarr; release = big speed boost</p>
-      <p>A quick hop also clears cones and oil slicks</p>
-    </section>
-
-    <section>
-      <h3>WEAPONS &mdash; iOS</h3>
-      <p>Drive through a <span class="hi-y">?</span> box to collect a weapon</p>
-      <p><strong>Tilt on:</strong> weapon button appears bottom-left &mdash; tap to fire</p>
-      <p><strong>Tilt off:</strong> weapon button appears center-bottom &mdash; tap between the arrows</p>
-      <p><span class="key">&#128640;</span> Missile &mdash; homes in on the kart ahead, spins it out</p>
-      <p><span class="key">&#9889;</span> Boost &mdash; instant speed burst</p>
-      <p><span class="key">&#128167;</span> Oil &mdash; drops a slick behind you</p>
-    </section>
-
-    <section>
-      <h3>PAUSE &amp; SOUND &mdash; iOS</h3>
-      <p><span class="key">&#10074;&#10074;</span> Pause button top-right during a race</p>
-      <p><span class="key">&#9834;</span> Sound toggle top-right on menu and select screens</p>
-    </section>
-
-    <div class="platform-label pc-label">&#128187; COMPUTER / DESKTOP</div>
-
-    <section>
-      <h3>CONTROLS &mdash; COMPUTER</h3>
-      <p><span class="key">&#8592; &#8594;</span> or <span class="key">A D</span> Steer</p>
-      <p><span class="key">Space</span> Hold to drift &mdash; release for boost</p>
-      <p><span class="key">X</span> Fire weapon &mdash; or click the <span class="key">FIRE</span> button on screen</p>
-      <p><span class="key">&#8595;</span> or <span class="key">S</span> Brake</p>
-      <p><span class="key">P</span> or <span class="key">Esc</span> Pause</p>
-    </section>
-
-    <section>
-      <h3>WEAPON BUTTON &mdash; COMPUTER</h3>
-      <p>The <span class="key">FIRE</span> button is always visible bottom-left during a race</p>
-      <p>It lights up with the weapon icon when you collect a <span class="hi-y">?</span> box</p>
-      <p>Click it or press <span class="key">X</span> to fire</p>
-    </section>
-
-    <div class="platform-label shared-label">&#127959; TRACK &amp; SCORING</div>
-
-    <section>
-      <h3>PICKUPS &amp; HAZARDS</h3>
-      <p><span class="key">COINS</span> 25 pts each</p>
-      <p><span class="key">BOOST PADS</span> Glowing chevrons on track &mdash; free speed boost</p>
-      <p><span class="key">JUMP RAMPS</span> Launch into the air &mdash; hazards pass below while airborne</p>
-      <p><span class="key">CONES</span> Spin you out &mdash; drift-hop to clear</p>
-      <p><span class="key">OIL</span> Scrambles steering &mdash; drift-hop to clear</p>
-    </section>
-
-    <section>
-      <h3>SCORING</h3>
-      <p>Finish bonus: 1st&nbsp;1200 &middot; 2nd&nbsp;900 &middot; 3rd&nbsp;650 &middot; 4th&nbsp;450 &middot; 5th&nbsp;300 &middot; 6th&nbsp;200</p>
-      <p>Score accumulates across all Grand Prix races</p>
-      <p>High score is saved locally in your browser</p>
-    </section>
+    <div class="htp-panel" data-panel="track" hidden>
+      <dl>
+        <dt>COINS</dt><dd>25 pts each</dd>
+        <dt>BOOST PADS</dt><dd>Glowing chevrons &mdash; free speed burst on contact</dd>
+        <dt>JUMP RAMPS</dt><dd>Launch airborne &mdash; hazards pass below while in the air</dd>
+        <dt>CONES</dt><dd>Spin-out on contact &mdash; drift hop clears them</dd>
+        <dt>OIL SLICKS</dt><dd>Scrambles steering &mdash; drift hop clears them</dd>
+        <dt>SCORING</dt><dd>1st&nbsp;1200 &middot; 2nd&nbsp;900 &middot; 3rd&nbsp;650 &middot; 4th&nbsp;450 &middot; 5th&nbsp;300 &middot; 6th&nbsp;200</dd>
+        <dt>GRAND PRIX</dt><dd>Score adds up across all circuits &mdash; high score saved locally</dd>
+      </dl>
+    </div>
   </div>
 </div>
 
@@ -149,11 +128,11 @@
   <p>Sorry &mdash; your browser does not support WebGL.</p>
 </div>
 
-<script src="js/renderer.js?v=14"></script>
-<script src="js/input.js?v=14"></script>
-<script src="js/tracks.js?v=14"></script>
-<script src="js/sprites.js?v=14"></script>
-<script src="js/audio.js?v=14"></script>
-<script src="js/game.js?v=14"></script>
+<script src="js/renderer.js?v=15"></script>
+<script src="js/input.js?v=15"></script>
+<script src="js/tracks.js?v=15"></script>
+<script src="js/sprites.js?v=15"></script>
+<script src="js/audio.js?v=15"></script>
+<script src="js/game.js?v=15"></script>
 </body>
 </html>

@@ -835,6 +835,22 @@
   helpBtn.addEventListener("touchend", openHowToPlay);
   howToPlayClose.addEventListener("click", closeHowToPlay);
   howToPlayClose.addEventListener("touchend", closeHowToPlay);
+
+  document.querySelectorAll(".htp-tab").forEach(function (btn) {
+    function activate(e) {
+      e.stopPropagation();
+      if (e.cancelable) e.preventDefault();
+      const target = btn.dataset.tab;
+      document.querySelectorAll(".htp-tab").forEach(function (b) {
+        b.classList.toggle("active", b.dataset.tab === target);
+      });
+      document.querySelectorAll(".htp-panel").forEach(function (p) {
+        p.hidden = p.dataset.panel !== target;
+      });
+    }
+    btn.addEventListener("click", activate);
+    btn.addEventListener("touchend", activate);
+  });
   function onSoundToggle(e) {
     e.stopPropagation();
     if (e.cancelable) e.preventDefault();
@@ -1138,7 +1154,7 @@
       // render the same size. Caps are proportional — absolute pixel
       // caps made the kart change size relative to the world when the
       // page was zoomed.
-      const kw = Math.min(CAM_DEPTH / 600 * ROAD_W * (w / 2) * 0.28, h * 0.42);
+      const kw = CAM_DEPTH / 600 * ROAD_W * (w / 2) * 0.28;
       const px = w / 2 + player.steerVis * w * 0.04;
       const py = h * 0.92 + Math.sin(raceT * 22) * (player.speed / MAX_SPEED) * 1.6
                + (Math.abs(player.x) > 1.04 ? Math.sin(raceT * 50) * 2.5 : 0);
