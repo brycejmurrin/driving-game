@@ -191,6 +191,47 @@ html, body {
   transform: scale(0.94);
 }
 
+#steerleft[hidden],
+#steerright[hidden] {
+  display: none;
+}
+
+#steerleft,
+#steerright {
+  position: fixed;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: rgba(10, 16, 34, 0.5);
+  border: 2px solid rgba(191, 234, 255, 0.7);
+  color: #fff;
+  font-family: inherit;
+  font-size: 26px;
+  z-index: 4;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+#steerleft { left: 14px; }
+#steerright { right: 14px; }
+
+#steerleft:active,
+#steerright:active,
+#steerleft.held,
+#steerright.held {
+  background: rgba(191, 234, 255, 0.25);
+  transform: scale(0.94);
+}
+
+/* with arrow steering the fire / drift buttons move up a row */
+body.btnsteer #firebtn,
+body.btnsteer #driftbtn {
+  bottom: calc(116px + env(safe-area-inset-bottom));
+}
+
 #prompt {
   margin-top: 18px;
   font-size: 17px;

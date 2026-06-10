@@ -9,6 +9,7 @@ const GameAudio = (function () {
   let ctx = null;
   let master = null;
   let muted = false;
+  let unmuteEl = null;      // silent <audio> keeping iOS in playback mode
 
   // Engine voice (persistent while racing)
   let engOsc1 = null, engOsc2 = null, engFilter = null, engGain = null;
@@ -39,6 +40,15 @@ const GameAudio = (function () {
     src.buffer = buf;
     src.connect(ctx.destination);
     src.start(0);
+
+    // iPhone mutes WebAudio with the ringer/silent switch unless the
+    // page is also playing an <audio> element, which promotes the audio
+    // session to media playback. Loop a tiny silent wav forever.
+    unmuteEl = document.createElement("audio");
+    unmuteEl.loop = true;
+    unmuteEl.setAttribute("playsinline", "");
+    unmuteEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+    unmuteEl.play().catch(function () {});
 
     // iOS suspends the context on lock/app-switch and never resumes it
     // by itself; recover on the next gesture or on returning to the tab.

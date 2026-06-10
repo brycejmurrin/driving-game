@@ -15,75 +15,78 @@ const Sprites = (function () {
 
   /*
    * Kart seen from behind. steer tilts the body, hop lifts it,
-   * boostGlow draws exhaust flames, drift kicks the rear out.
+   * boost draws exhaust flames, drift kicks the rear out.
+   * Proportions: wide low bumper between two fat tires, narrow cockpit,
+   * small helmet, raised spoiler — reads as a kart at any scale.
    */
   function kart(x, y, w, color, opts) {
     const o = opts || {};
     const steer = o.steer || 0;
     const hop = (o.hop || 0) * w * 0.25;
     const drift = o.drift || 0;
-    const h = w * 0.62;
+    const h = w * 0.52;
     y -= hop;
 
-    const lean = steer * 0.18 + drift * 0.3;
-    const cx = x;
+    const lean = steer * 0.14 + drift * 0.24;
     const by = y;            // bottom (wheel contact)
-    const skew = lean * w * 0.5;
+    const skew = lean * w * 0.35;
 
     // underglow
-    R.circle(cx, by + h * 0.04, w * 0.62, shade(color, 1.2, 0.16), 14);
+    R.circle(x, by - h * 0.04, w * 0.5, shade(color, 1.2, 0.13), 14);
 
-    // rear wheels
-    const wy = by - h * 0.16;
-    const ww = w * 0.21, wh = h * 0.32;
-    R.rotQuad(cx - w * 0.42 + skew * 0.3, wy, ww, wh, lean * 0.5, [0.05, 0.05, 0.08, 1]);
-    R.rotQuad(cx + w * 0.42 + skew * 0.3, wy, ww, wh, lean * 0.5, [0.05, 0.05, 0.08, 1]);
-    // hubcap glow
-    R.circle(cx - w * 0.42 + skew * 0.3, wy, ww * 0.22, shade(color, 1.4), 8);
-    R.circle(cx + w * 0.42 + skew * 0.3, wy, ww * 0.22, shade(color, 1.4), 8);
+    // rear tires
+    const wy = by - h * 0.22;
+    const ww = w * 0.17, wh = h * 0.44;
+    R.rotQuad(x - w * 0.42 + skew * 0.25, wy, ww, wh, lean * 0.4, [0.04, 0.04, 0.07, 1]);
+    R.rotQuad(x + w * 0.42 + skew * 0.25, wy, ww, wh, lean * 0.4, [0.04, 0.04, 0.07, 1]);
+    R.circle(x - w * 0.42 + skew * 0.25, wy, ww * 0.2, shade(color, 1.4), 8);
+    R.circle(x + w * 0.42 + skew * 0.25, wy, ww * 0.2, shade(color, 1.4), 8);
 
-    // body: trapezoid leaning with steer
-    const bw = w * 0.74;
-    const bh = h * 0.42;
-    const bx = cx + skew * 0.5;
+    // bumper: wide low block between the tires
+    const bx = x + skew * 0.4;
     R.quadP(
-      bx - bw * 0.38 - skew * 0.4, by - bh - h * 0.18,
-      bx + bw * 0.38 - skew * 0.4, by - bh - h * 0.18,
-      bx + bw * 0.5, by - h * 0.10,
-      bx - bw * 0.5, by - h * 0.10,
-      shade(color, 1.0)
+      bx - w * 0.34, by - h * 0.40,
+      bx + w * 0.34, by - h * 0.40,
+      bx + w * 0.37, by - h * 0.06,
+      bx - w * 0.37, by - h * 0.06,
+      shade(color, 0.95)
     );
-    // body highlight strip
-    R.quadP(
-      bx - bw * 0.38 - skew * 0.4, by - bh - h * 0.18,
-      bx + bw * 0.38 - skew * 0.4, by - bh - h * 0.18,
-      bx + bw * 0.40 - skew * 0.32, by - bh - h * 0.06,
-      bx - bw * 0.40 - skew * 0.32, by - bh - h * 0.06,
-      shade(color, 1.5)
-    );
+    // tail light strip
+    R.quad(bx - w * 0.28, by - h * 0.34, w * 0.56, h * 0.08, shade(color, 1.6));
 
-    // spoiler
-    const sy = by - bh - h * 0.30;
+    // cockpit: narrower trapezoid above the bumper
     R.quadP(
-      bx - bw * 0.45 - skew * 0.7, sy,
-      bx + bw * 0.45 - skew * 0.7, sy,
-      bx + bw * 0.36 - skew * 0.5, sy + h * 0.10,
-      bx - bw * 0.36 - skew * 0.5, sy + h * 0.10,
+      bx - w * 0.20 - skew * 0.3, by - h * 0.62,
+      bx + w * 0.20 - skew * 0.3, by - h * 0.62,
+      bx + w * 0.27, by - h * 0.38,
+      bx - w * 0.27, by - h * 0.38,
       shade(color, 0.7)
     );
 
+    // spoiler: thin raised wing
+    const sy = by - h * 0.78;
+    R.quad(bx - w * 0.06 - skew * 0.4, sy, w * 0.04, h * 0.16, shade(color, 0.55));
+    R.quad(bx + w * 0.02 - skew * 0.4, sy, w * 0.04, h * 0.16, shade(color, 0.55));
+    R.quadP(
+      bx - w * 0.33 - skew * 0.5, sy - h * 0.10,
+      bx + w * 0.33 - skew * 0.5, sy - h * 0.10,
+      bx + w * 0.29 - skew * 0.45, sy,
+      bx - w * 0.29 - skew * 0.45, sy,
+      shade(color, 1.1)
+    );
+
     // driver helmet
-    R.circle(bx - skew * 0.5, by - bh - h * 0.22, w * 0.13, [0.95, 0.95, 1.0, 1], 10);
-    R.circle(bx - skew * 0.5, by - bh - h * 0.22, w * 0.13, shade(color, 0.5, 0.45), 10);
+    R.circle(bx - skew * 0.35, by - h * 0.66, w * 0.095, [0.95, 0.95, 1.0, 1], 10);
+    R.circle(bx - skew * 0.35, by - h * 0.66, w * 0.095, shade(color, 0.5, 0.4), 10);
 
     // exhaust flames while boosting
     if (o.boost) {
       const t = o.time || 0;
       const fl = (Math.sin(t * 40) * 0.5 + 0.5) * w * 0.3 + w * 0.2;
-      R.tri(cx - w * 0.18, by - h * 0.05, cx - w * 0.05, by - h * 0.05,
-            cx - w * 0.115, by + fl, [1.0, 0.7, 0.2, 0.9]);
-      R.tri(cx + w * 0.05, by - h * 0.05, cx + w * 0.18, by - h * 0.05,
-            cx + w * 0.115, by + fl, [0.3, 0.8, 1.0, 0.9]);
+      R.tri(x - w * 0.18, by - h * 0.05, x - w * 0.05, by - h * 0.05,
+            x - w * 0.115, by + fl, [1.0, 0.7, 0.2, 0.9]);
+      R.tri(x + w * 0.05, by - h * 0.05, x + w * 0.18, by - h * 0.05,
+            x + w * 0.115, by + fl, [0.3, 0.8, 1.0, 0.9]);
     }
     // drift sparks
     if (Math.abs(drift) > 0.01 && o.charge) {
@@ -91,7 +94,7 @@ const Sprites = (function () {
       const t = o.time || 0;
       for (let i = 0; i < 3; i++) {
         const a = t * 30 + i * 2.1;
-        const sx = cx - Math.sign(drift) * w * 0.45 + Math.sin(a) * w * 0.1;
+        const sx = x - Math.sign(drift) * w * 0.45 + Math.sin(a) * w * 0.1;
         R.circle(sx, by + Math.cos(a * 1.3) * w * 0.06, w * 0.045, sc, 6);
       }
     }

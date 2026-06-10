@@ -26,6 +26,7 @@ const Input = (function () {
   let touchSteer = 0;       // -1 | 0 | 1 from screen halves
   let touchDrift = false;
   let buttonDrift = false;  // on-screen DRIFT button held
+  let buttonSteer = 0;      // -1 | 0 | 1 from on-screen arrow buttons
   let firePressed = false;  // weapon trigger, consumed by the game
   const touches = new Map(); // id -> role: "steer" | "drift"
 
@@ -100,7 +101,11 @@ const Input = (function () {
     const k = (keyRight ? 1 : 0) - (keyLeft ? 1 : 0);
     if (k !== 0) return k;
     if (useTilt && gyroSeen) return tiltSteering();
-    return touchSteer;
+    return buttonSteer || touchSteer;
+  }
+
+  function setButtonSteer(v) {
+    buttonSteer = v < 0 ? -1 : v > 0 ? 1 : 0;
   }
 
   function drifting() {
@@ -209,6 +214,7 @@ const Input = (function () {
     touchSteer = 0;
     touchDrift = false;
     buttonDrift = false;
+    buttonSteer = 0;
     firePressed = false;
     keyLeft = keyRight = keyDrift = keyBrake = false;
   }
@@ -223,6 +229,7 @@ const Input = (function () {
     braking,
     tiltActive,
     setButtonDrift,
+    setButtonSteer,
     pressFire,
     consumeFire,
     get gyroSeen() { return gyroSeen; },

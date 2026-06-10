@@ -51,6 +51,8 @@
   const trackSelect = document.getElementById("trackselect");
   const fireBtn = document.getElementById("firebtn");
   const driftBtn = document.getElementById("driftbtn");
+  const steerLBtn = document.getElementById("steerleft");
+  const steerRBtn = document.getElementById("steerright");
   const isTouch = "ontouchstart" in window;
 
   if (!Renderer.init(canvas)) {
@@ -711,9 +713,32 @@
   fireBtn.addEventListener("touchstart", function (e) { e.preventDefault(); Input.pressFire(); }, { passive: false });
   fireBtn.addEventListener("mousedown", function () { Input.pressFire(); });
 
+  // ◀ ▶ arrow steering, shown when tilt isn't doing the steering
+  let steerLHeld = false, steerRHeld = false;
+  function applySteerButtons() {
+    Input.setButtonSteer((steerRHeld ? 1 : 0) - (steerLHeld ? 1 : 0));
+    steerLBtn.classList.toggle("held", steerLHeld);
+    steerRBtn.classList.toggle("held", steerRHeld);
+  }
+  bindHold(steerLBtn, function () { steerLHeld = true; applySteerButtons(); },
+                      function () { steerLHeld = false; applySteerButtons(); });
+  bindHold(steerRBtn, function () { steerRHeld = true; applySteerButtons(); },
+                      function () { steerRHeld = false; applySteerButtons(); });
+
+  function syncSteerButtons() {
+    const racing = state === "race" || state === "count";
+    const show = racing && isTouch && !Input.tiltActive();
+    if (steerLBtn.hidden === show) {
+      steerLBtn.hidden = !show;
+      steerRBtn.hidden = !show;
+      document.body.classList.toggle("btnsteer", show);
+    }
+  }
+
   /* ---------------- update ---------------- */
 
   function update(dt) {
+    syncSteerButtons();
     if (state === "menu" || state === "select") {
       demoZ = (demoZ + MAX_SPEED * 0.45 * dt) % trackLen;
       const seg = segAt(demoZ);
@@ -933,7 +958,7 @@
         const pct = (rel / SEG_LEN + basePct) - cn;
         const x = lerp(p1.x, p2.x, pct) + lerp(p1.w, p2.w, pct) * c.x;
         const y = lerp(p1.y, p2.y, pct);
-        const kw = lerp(p1.w, p2.w, pct) * 0.34;
+        const kw = lerp(p1.w, p2.w, pct) * 0.28;
         const spin = c.spinT > 0 ? Math.sin((1.3 - c.spinT) * 12) * 2 : 0;
         Sprites.kart(x, y, kw, c.color, { steer: spin, time: raceT });
       }
@@ -951,9 +976,9 @@
 
     // player kart, fixed near the bottom of the screen
     if (showPlayer && player) {
-      const kw = Math.min(w * 0.30, 190);
+      const kw = Math.min(w * 0.22, 130);
       const px = w / 2 + player.steerVis * w * 0.04;
-      const py = h * 0.94 + Math.sin(raceT * 22) * (player.speed / MAX_SPEED) * 1.6
+      const py = h * 0.92 + Math.sin(raceT * 22) * (player.speed / MAX_SPEED) * 1.6
                + (Math.abs(player.x) > 1.04 ? Math.sin(raceT * 50) * 2.5 : 0);
       const spin = player.spinT > 0 ? Math.sin((0.9 - player.spinT) * 14) : 0;
       Sprites.kart(px, py, kw, player.color, {
