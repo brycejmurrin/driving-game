@@ -9,9 +9,7 @@ const GameAudio = (function () {
   let ctx = null;
   let master = null;
   let muted = false;
-  let unmuteEl = null;      // silent <audio> keeping iOS in playback mode
-  let outEl = null;         // <audio> sink for the whole mix (see createCtx)
-  let outRoute = "none";    // "element" | "direct" — shown in status()
+  let outRoute = "none";    // "playback" | "default" — shown in status()
 
   // Engine voice (persistent while racing)
   let engOsc1 = null, engOsc2 = null, engFilter = null, engGain = null;
@@ -28,51 +26,25 @@ const GameAudio = (function () {
   function createCtx() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return false;
+
+    // iOS 17+: play through the ring/silent switch like a game should.
+    // The Audio Session API must be set BEFORE the context is created.
+    // Same recipe as Neon Swarm / Neon Slice.
+    outRoute = "default";
+    try {
+      if (typeof navigator !== "undefined" && navigator.audioSession) {
+        navigator.audioSession.type = "playback";
+        outRoute = "playback";
+      }
+    } catch (e) { /* older iOS */ }
+
     ctx = new AC();
     master = ctx.createGain();
     master.gain.value = muted ? 0 : 0.8;
+    master.connect(ctx.destination);
 
-    // Route the whole mix through an <audio> element when possible:
-    // media-element output uses the iOS *playback* audio session (like
-    // YouTube), which ignores the ringer/silent switch. WebAudio's own
-    // output goes through the ringer channel and gets muted by it.
-    outRoute = "direct";
-    let routed = false;
-    if (typeof ctx.createMediaStreamDestination === "function") {
-      try {
-        const msDest = ctx.createMediaStreamDestination();
-        if (!outEl) {
-          outEl = document.createElement("audio");
-          outEl.setAttribute("playsinline", "");
-          outEl.autoplay = true;
-        }
-        outEl.srcObject = msDest.stream;
-        master.connect(msDest);
-        routed = true;
-        outRoute = "element";
-        const p = outEl.play();
-        if (p && p.catch) {
-          p.catch(function () {
-            // the element refused to play — fall back to direct output
-            try { master.disconnect(); } catch (e) { /* not connected */ }
-            if (ctx) master.connect(ctx.destination);
-            outRoute = "direct";
-          });
-        }
-      } catch (e) {
-        routed = false;
-      }
-    }
-    if (!routed) master.connect(ctx.destination);
-
-    // A fresh context often starts suspended even inside a tap (iOS) —
-    // resume it and play one silent sample, the canonical unlock.
+    // iOS Safari starts contexts suspended; resume inside the gesture.
     if (ctx.state !== "running") ctx.resume();
-    const buf = ctx.createBuffer(1, 1, 22050);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start(0);
     return true;
   }
 
@@ -86,16 +58,6 @@ const GameAudio = (function () {
 
     if (!listenersAttached) {
       listenersAttached = true;
-
-      // iPhone mutes WebAudio with the ringer/silent switch unless the
-      // page is also playing an <audio> element, which promotes the audio
-      // session to media playback. Loop a tiny silent wav forever.
-      unmuteEl = document.createElement("audio");
-      unmuteEl.loop = true;
-      unmuteEl.setAttribute("playsinline", "");
-      unmuteEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
-      unmuteEl.play().catch(function () {});
-
       // iOS suspends the context on lock/app-switch and never resumes it
       // by itself; recover on the next gesture or on returning to the tab.
       window.addEventListener("touchend", resumeIfNeeded, true);
@@ -118,11 +80,6 @@ const GameAudio = (function () {
   function resumeIfNeeded(gestureEv) {
     if (!ctx) return;
     const isGesture = !!gestureEv;
-    if (isGesture) {
-      // iOS pauses media elements on interruptions; restart them here
-      if (outEl && outEl.paused) outEl.play().catch(function () {});
-      if (unmuteEl && unmuteEl.paused) unmuteEl.play().catch(function () {});
-    }
     if (ctx.state === "running") {
       rebuildTries = 0;
       lastFailedResume = 0;
@@ -169,8 +126,6 @@ const GameAudio = (function () {
       if (engineOn) stopEngine();
     } else {
       resumeIfNeeded();
-      if (outEl && outEl.paused) outEl.play().catch(function () {});
-      if (unmuteEl && unmuteEl.paused) unmuteEl.play().catch(function () {});
       if (resumeMusic) startMusic();   // restarts cleanly re-synced to the clock
       if (resumeEngine) startEngine();
       resumeMusic = resumeEngine = false;
@@ -498,7 +453,6 @@ const GameAudio = (function () {
   function status() {
     if (!ctx) return "tap to start";
     let s = ctx.state + " · " + outRoute;
-    if (outEl && outRoute === "element" && outEl.paused) s += " (paused)";
     if (muted) s += " · muted";
     if (musicOn) s += " · ♪" + notesScheduled;
     return s;
