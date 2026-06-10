@@ -201,7 +201,7 @@ const GameAudio = (function () {
     engOsc1.frequency.value = base;
     engOsc2.frequency.value = base * 1.012 + (offroad ? 7 : 0);
     engFilter.frequency.value = 280 + speed01 * 1400 + (boosting ? 800 : 0);
-    engGain.gain.value = 0.05 + speed01 * 0.075 + (offroad ? 0.02 : 0);
+    engGain.gain.value = 0.04 + speed01 * 0.055 + (offroad ? 0.02 : 0);
   }
 
   /* ---------------- sfx ---------------- */
@@ -284,14 +284,19 @@ const GameAudio = (function () {
   /* ---------------- music ---------------- */
 
   /*
-   * Lookahead sequencer: a JS timer wakes every 25ms and schedules any
-   * notes that fall within the next 120ms on the WebAudio clock, so
-   * playback stays sample-accurate even when the main thread hiccups.
-   * Four-bar synthwave loop in A minor: Am — Am — F — G.
+   * Lookahead sequencer: notes are scheduled on the WebAudio clock up to
+   * 300ms ahead, pumped from BOTH a 60ms timer and a rAF loop — iOS
+   * throttles whichever one it feels like, but rarely both at once, and
+   * the wide lookahead rides out the gaps. If we ever fall behind (tab
+   * frozen, long GC) we skip forward instead of burst-playing the gap.
+   * Four-bar synthwave loop in A minor: Am — Am — F — G. The mix leans
+   * on mid/high harmonics (saws, octave doubles) because phone speakers
+   * reproduce almost nothing below ~300Hz.
    */
   const TEMPO = 132;
   const STEP_DUR = 60 / TEMPO / 4;          // one 16th note
   const PATTERN_LEN = 64;                   // 4 bars of 16ths
+  const LOOKAHEAD = 0.3;
 
   // chord roots per bar (A2, A2, F2, G2)
   const ROOTS = [110, 110, 87.31, 98];
@@ -323,13 +328,25 @@ const GameAudio = (function () {
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(130, t0);
-    osc.frequency.exponentialRampToValueAtTime(40, t0 + 0.1);
+    osc.frequency.setValueAtTime(150, t0);
+    osc.frequency.exponentialRampToValueAtTime(45, t0 + 0.1);
     g.gain.setValueAtTime(0.5, t0);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
     osc.connect(g).connect(master);
     osc.start(t0);
     osc.stop(t0 + 0.2);
+    // click transient so the beat reads on small speakers
+    const len = Math.ceil(ctx.sampleRate * 0.02);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const cg = ctx.createGain();
+    cg.gain.setValueAtTime(0.18, t0);
+    cg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.025);
+    src.connect(cg).connect(master);
+    src.start(t0);
   }
 
   function hat(t0, open) {
@@ -355,35 +372,54 @@ const GameAudio = (function () {
 
     if (i % 2 === 0) {                       // bass on eighths, octave bounce
       const f = (i % 4 === 2) ? root * 2 : root;
-      musicNote(f, "triangle", 0.30, STEP_DUR * 1.8, t0);
-      musicNote(f, "square", 0.07, STEP_DUR * 1.6, t0);
+      // saws + octave double: harmonics survive a phone speaker
+      musicNote(f, "sawtooth", 0.20, STEP_DUR * 1.8, t0);
+      musicNote(f * 2, "square", 0.10, STEP_DUR * 1.6, t0);
     }
     if (i % 4 === 0) kick(t0);
     if (i % 4 === 2) hat(t0, i % 16 === 14);
     const lead = LEAD[i];
-    if (lead) musicNote(lead, "sawtooth", 0.10, STEP_DUR * 2.2, t0);
+    if (lead) {
+      musicNote(lead, "sawtooth", 0.15, STEP_DUR * 2.4, t0);
+      musicNote(lead * 1.005, "sawtooth", 0.09, STEP_DUR * 2.4, t0); // detune shimmer
+    }
     if (i % 16 === 0) {                      // soft pad chord on bar starts
-      musicNote(root * 4, "triangle", 0.05, STEP_DUR * 14, t0);
-      musicNote(root * 4 * 1.1892, "triangle", 0.05, STEP_DUR * 14, t0); // minor 3rd
+      musicNote(root * 4, "triangle", 0.06, STEP_DUR * 14, t0);
+      musicNote(root * 4 * 1.1892, "triangle", 0.06, STEP_DUR * 14, t0); // minor 3rd
     }
   }
 
   function scheduler() {
     if (!musicOn || !ctx) return;
-    while (nextNoteT < ctx.currentTime + 0.12) {
+    const now = ctx.currentTime;
+    if (nextNoteT < now - 0.25) {
+      // fell badly behind (frozen tab, long GC): jump ahead, stay on beat
+      const missed = Math.ceil((now + 0.05 - nextNoteT) / STEP_DUR);
+      nextNoteT += missed * STEP_DUR;
+      step += missed;
+    }
+    while (nextNoteT < now + LOOKAHEAD) {
       playStep(step % PATTERN_LEN, nextNoteT);
       nextNoteT += STEP_DUR;
       step++;
     }
   }
 
+  function rafPump() {
+    if (!musicOn) return;
+    scheduler();
+    window.requestAnimationFrame(rafPump);
+  }
+
   function startMusic() {
     if (!ctx || musicOn) return;
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state !== "running") ctx.resume();
+    if (musicTimer) clearInterval(musicTimer);
     musicOn = true;
     step = 0;
     nextNoteT = ctx.currentTime + 0.06;
-    musicTimer = setInterval(scheduler, 25);
+    musicTimer = setInterval(scheduler, 60);
+    if (window.requestAnimationFrame) window.requestAnimationFrame(rafPump);
   }
 
   function stopMusic() {
