@@ -226,10 +226,23 @@ html, body {
   transform: scale(0.94);
 }
 
-/* with arrow steering the fire / drift buttons move up a row */
-body.btnsteer #firebtn,
+/* with arrow steering: drift moves up a row, fire centers between arrows */
 body.btnsteer #driftbtn {
   bottom: calc(116px + env(safe-area-inset-bottom));
+}
+
+body.btnsteer #firebtn {
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(18px + env(safe-area-inset-bottom));
+}
+
+/* fire button when no weapon is loaded (desktop always-visible state) */
+#firebtn.no-weapon {
+  opacity: 0.3;
+  border-color: rgba(255, 120, 60, 0.35);
+  font-size: 14px;
+  letter-spacing: 2px;
 }
 
 #prompt {
@@ -428,17 +441,46 @@ body.btnsteer #driftbtn {
   transform: scale(0.9);
 }
 
+.platform-label {
+  margin: 24px 0 14px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.ios-label {
+  background: rgba(51, 230, 242, 0.12);
+  border: 1px solid rgba(51, 230, 242, 0.4);
+  color: #33e6f2;
+}
+
+.pc-label {
+  background: rgba(255, 100, 200, 0.10);
+  border: 1px solid rgba(255, 100, 200, 0.4);
+  color: #ff80d8;
+  text-shadow: 0 0 12px rgba(255, 100, 200, 0.5);
+}
+
+.shared-label {
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  color: #ffd740;
+}
+
 #howtoplay-inner section {
   margin-bottom: 22px;
-  border-top: 1px solid rgba(51, 230, 242, 0.15);
-  padding-top: 16px;
+  border-top: 1px solid rgba(51, 230, 242, 0.10);
+  padding-top: 14px;
 }
 
 #howtoplay-inner h3 {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 3px;
-  color: #33e6f2;
+  color: rgba(51, 230, 242, 0.75);
   margin-bottom: 10px;
 }
 

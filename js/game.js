@@ -447,8 +447,19 @@
   const WEAPON_ICON = { missile: "\u{1F680}", boost: "⚡", oil: "\u{1F4A7}" };
 
   function updateFireBtn() {
-    fireBtn.hidden = !(player && player.weapon && (state === "race" || state === "count"));
-    if (player && player.weapon) fireBtn.textContent = WEAPON_ICON[player.weapon];
+    const racing = state === "race" || state === "count";
+    const hasWeapon = !!(player && player.weapon);
+    if (!isTouch) {
+      // Desktop: always show during race so the button is discoverable
+      fireBtn.hidden = !racing;
+      fireBtn.textContent = hasWeapon ? WEAPON_ICON[player.weapon] : "FIRE";
+      fireBtn.classList.toggle("no-weapon", !hasWeapon);
+    } else {
+      // Touch: only show when a weapon is loaded (icon is the cue to fire)
+      fireBtn.hidden = !(hasWeapon && racing);
+      if (hasWeapon) fireBtn.textContent = WEAPON_ICON[player.weapon];
+      fireBtn.classList.remove("no-weapon");
+    }
   }
 
   function fireWeapon() {
