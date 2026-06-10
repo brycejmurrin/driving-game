@@ -48,6 +48,10 @@
   const elAnnounce = document.getElementById("announce");
   const pauseBtn = document.getElementById("pausebtn");
   const pauseMenu = document.getElementById("pausemenu");
+  const trackSelect = document.getElementById("trackselect");
+  const fireBtn = document.getElementById("firebtn");
+  const driftBtn = document.getElementById("driftbtn");
+  const isTouch = "ontouchstart" in window;
 
   if (!Renderer.init(canvas)) {
     document.getElementById("nogl").hidden = false;
@@ -57,12 +61,15 @@
 
   /* ---------------- state ---------------- */
 
-  let state = "menu";             // menu | count | race | results | gpend
+  let state = "menu";             // menu | select | count | race | results | gpend
   let paused = false;
   let track = null;               // current track def
   let segs = [];
   let trackLen = 0;
   let trackIdx = 0;
+  let raceQueue = [0];            // track indices for this cup
+  let queuePos = 0;
+  let missiles = [];
 
   let player = null;
   let cars = [];
@@ -147,10 +154,11 @@
       // AI personality
       skill: 0.78 + idx * 0.035 + Math.random() * 0.05,
       lane: gridCol * 0.8,
-      // player-only effect timers
+      // effect timers (spinT is shared: missiles spin AI out too)
       boostT: 0, spinT: 0, slideT: 0, hopT: 0,
       driftCharge: 0, driftDir: 0, wasDrifting: false,
       steerVis: 0,
+      weapon: null,
     };
   }
 
@@ -162,6 +170,7 @@
     raceCoins = 0;
     raceT = 0;
     finishT = 0;
+    missiles = [];
 
     // grid: player starts at the back, AI staggered ahead
     player = makeRacer(true, 0, 0, 0.35);
@@ -175,9 +184,12 @@
     countT = 0;
     countStep = 0;
     overlay.classList.add("hidden");
+    trackSelect.hidden = true;
     pauseBtn.hidden = false;
+    driftBtn.hidden = !isTouch;
     Input.reset();
     Input.calibrate();
+    updateFireBtn();
     announce(track.name, 1400);
     GameAudio.startEngine();
     GameAudio.startMusic();
@@ -206,6 +218,8 @@
     const p = player;
     const seg = segAt(zOf(p));
     const speedPct = p.speed / MAX_SPEED;
+
+    if (Input.consumeFire() && state === "race" && !p.finished) fireWeapon();
 
     // throttle: automatic. Effects shape the target speed.
     let target = MAX_SPEED;
@@ -334,9 +348,86 @@
               GameAudio.oilSlip();
             }
             break;
+          case "box":
+            if (dx < 0.28 && raceT > (item.deadUntil || 0) && !p.weapon) {
+              item.deadUntil = raceT + 4;     // box respawns after 4s
+              const roll = Math.random();
+              p.weapon = roll < 0.45 ? "missile" : roll < 0.75 ? "boost" : "oil";
+              updateFireBtn();
+              GameAudio.itemGet();
+            }
+            break;
         }
       }
     }
+  }
+
+  /* ---------------- weapons ---------------- */
+
+  const WEAPON_ICON = { missile: "\u{1F680}", boost: "⚡", oil: "\u{1F4A7}" };
+
+  function updateFireBtn() {
+    fireBtn.hidden = !(player && player.weapon && (state === "race" || state === "count"));
+    if (player && player.weapon) fireBtn.textContent = WEAPON_ICON[player.weapon];
+  }
+
+  function fireWeapon() {
+    const p = player;
+    if (!p.weapon) return;
+    switch (p.weapon) {
+      case "boost":
+        p.boostT = Math.max(p.boostT, 1.5);
+        GameAudio.boostPad();
+        break;
+      case "missile":
+        missiles.push({
+          z: (zOf(p) + 350) % trackLen,
+          x: p.x,
+          speed: Math.max(p.speed + 3600, 8800),
+          life: 4,
+        });
+        GameAudio.fireMissile();
+        break;
+      case "oil": {
+        // drop a slick a couple of segments behind
+        const idx = Math.floor(((zOf(p) - SEG_LEN * 2 + trackLen) % trackLen) / SEG_LEN);
+        segs[idx].items.push({ type: "oil", x: clamp(p.x, -0.9, 0.9), alive: true, dropped: true });
+        GameAudio.dropOil();
+        break;
+      }
+    }
+    p.weapon = null;
+    updateFireBtn();
+  }
+
+  function updateMissiles(dt) {
+    for (const m of missiles) {
+      m.z = (m.z + m.speed * dt) % trackLen;
+      m.life -= dt;
+      if (m.life <= 0) continue;
+      // gentle homing toward the nearest kart ahead
+      let best = null, bestDz = 2600;
+      for (const c of cars) {
+        let dz = zOf(c) - m.z;
+        if (dz < -trackLen / 2) dz += trackLen;
+        if (dz > trackLen / 2) dz -= trackLen;
+        if (dz > 0 && dz < bestDz) { best = c; bestDz = dz; }
+      }
+      if (best) m.x += clamp(best.x - m.x, -1, 1) * 1.6 * dt;
+      for (const c of cars) {
+        let dz = zOf(c) - m.z;
+        if (dz < -trackLen / 2) dz += trackLen;
+        if (dz > trackLen / 2) dz -= trackLen;
+        if (Math.abs(dz) < 260 && Math.abs(c.x - m.x) < 0.32 && c.spinT <= 0) {
+          c.spinT = 1.3;
+          m.life = 0;
+          GameAudio.explosion();
+          announce("HIT " + c.name + "!", 800);
+          break;
+        }
+      }
+    }
+    missiles = missiles.filter(function (m) { return m.life > 0; });
   }
 
   function checkKartCollisions(p, dt) {
@@ -364,6 +455,22 @@
     const z = zOf(c);
     const seg = segAt(z);
     const ahead = segAt(z + SEG_LEN * 12);
+
+    // spun out (player missile, dropped oil): coast and recover
+    if (c.spinT > 0) {
+      c.spinT -= dt;
+      c.speed += (MAX_SPEED * 0.15 - c.speed) * Math.min(1, 3 * dt);
+      const oldL = lapsOf(c);
+      c.dist += c.speed * dt;
+      if (lapsOf(c) > oldL) c.laps = lapsOf(c);
+      return;
+    }
+    for (const item of seg.items) {
+      if (item.dropped && item.type === "oil" && Math.abs(item.x - c.x) < 0.22) {
+        c.spinT = 0.9;
+        return;
+      }
+    }
 
     // rubber-banding keeps the pack near the player
     let band = 1;
@@ -425,12 +532,17 @@
     }
     lines += "\ncoins " + raceCoins + " × 25  +  " + POS_BONUS[pos] + " place bonus";
 
-    const last = trackIdx === Tracks.list.length - 1;
-    elTitle.textContent = last ? "GRAND PRIX COMPLETE" : "RACE " + (trackIdx + 1) + " DONE";
-    elSubtitle.textContent = lines + (last ? "\n\nGP SCORE  " + score : "");
+    const last = queuePos === raceQueue.length - 1;
+    const cup = raceQueue.length > 1;
+    elTitle.textContent = last
+      ? (cup ? "GRAND PRIX COMPLETE" : "RACE COMPLETE")
+      : "RACE " + (queuePos + 1) + "/" + raceQueue.length + " DONE";
+    elSubtitle.textContent = lines + (last && cup ? "\n\nGP SCORE  " + score : "");
     elPrompt.textContent = last ? "TAP FOR MENU" : "TAP FOR NEXT RACE";
     overlay.classList.remove("hidden");
     state = last ? "gpend" : "results";
+    fireBtn.hidden = true;
+    driftBtn.hidden = true;
     GameAudio.stopEngine();
     updateHud();
   }
@@ -446,9 +558,12 @@
     demoX = 0;
     player = null;
     cars = [];
+    missiles = [];
     pauseBtn.hidden = true;
+    fireBtn.hidden = true;
+    driftBtn.hidden = true;
+    trackSelect.hidden = true;
     GameAudio.stopEngine();
-    GameAudio.stopMusic();
     elTitle.textContent = "NEON DRIFT";
     elSubtitle.textContent = tiltHint();
     elPrompt.textContent = "TAP TO START";
@@ -457,9 +572,48 @@
   }
 
   function tiltHint() {
-    if (Input.gyroSeen && Input.useTilt) return "Tilt your phone to steer\nTouch and hold to drift · release for boost";
-    if (Input.gyroDenied) return "Touch left / right to steer\nSecond finger to drift · release for boost";
-    return "Tilt your phone to steer · grab coins · hit boost pads\n3 races · 3 laps · 5 rivals";
+    if (Input.gyroSeen && Input.useTilt) return "Tilt your phone to steer\nHold DRIFT through corners · release for boost\nGrab ? boxes · fire with the weapon button";
+    if (Input.gyroDenied) return "Touch left / right to steer\nHold DRIFT through corners · release for boost\nGrab ? boxes · fire with the weapon button";
+    return "Tilt your phone to steer · drift for boosts\n? boxes hold weapons · 3 laps · 5 rivals";
+  }
+
+  function showSelect() {
+    state = "select";
+    elTitle.textContent = "SELECT CIRCUIT";
+    elSubtitle.textContent = "";
+    elPrompt.textContent = "";
+    if (!trackSelect.childElementCount) buildTrackButtons();
+    trackSelect.hidden = false;
+    overlay.classList.remove("hidden");
+  }
+
+  function buildTrackButtons() {
+    const gp = document.createElement("button");
+    gp.className = "gp";
+    gp.textContent = "GRAND PRIX — ALL CIRCUITS";
+    gp.addEventListener("click", function (e) {
+      e.stopPropagation();
+      pickTracks(Tracks.list.map(function (_, i) { return i; }));
+    });
+    trackSelect.appendChild(gp);
+    Tracks.meta.forEach(function (m, i) {
+      const b = document.createElement("button");
+      b.textContent = m.name;
+      b.style.setProperty("--accent", m.color);
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        pickTracks([i]);
+      });
+      trackSelect.appendChild(b);
+    });
+  }
+
+  function pickTracks(queue) {
+    GameAudio.uiSelect();
+    raceQueue = queue;
+    queuePos = 0;
+    score = 0;
+    startRace(raceQueue[0]);
   }
 
   /* ---------------- start / pause wiring ---------------- */
@@ -467,21 +621,28 @@
   function onStartTap() {
     GameAudio.init();
     GameAudio.uiSelect();
+    GameAudio.startMusic();
     if (state === "menu") {
       // gyro permission must be requested inside this gesture (iOS)
-      Input.requestGyro().then(function () {
-        elSubtitle.textContent = tiltHint();
-      });
-      startRace(0);
+      Input.requestGyro();
+      showSelect();
     } else if (state === "results") {
-      startRace(trackIdx + 1);
+      queuePos++;
+      startRace(raceQueue[queuePos]);
     } else if (state === "gpend") {
       toMenu();
     }
   }
 
-  overlay.addEventListener("click", onStartTap);
-  overlay.addEventListener("touchend", function (e) { e.preventDefault(); onStartTap(); });
+  overlay.addEventListener("click", function (e) {
+    if (e.target.tagName === "BUTTON") return;   // track buttons handle themselves
+    onStartTap();
+  });
+  overlay.addEventListener("touchend", function (e) {
+    if (e.target.tagName === "BUTTON") return;
+    e.preventDefault();
+    onStartTap();
+  });
   window.addEventListener("keydown", function (e) {
     if ((e.code === "Enter" || e.code === "Space") && !overlay.classList.contains("hidden")) {
       if (state === "menu" || state === "results" || state === "gpend") onStartTap();
@@ -531,10 +692,29 @@
   });
   Input.init(canvas, { onPause: function () { setPaused(!paused); } });
 
+  // on-screen weapon + drift buttons
+  function bindHold(btn, on, off) {
+    btn.addEventListener("touchstart", function (e) { e.preventDefault(); on(); }, { passive: false });
+    btn.addEventListener("touchend", function (e) { e.preventDefault(); off(); }, { passive: false });
+    btn.addEventListener("touchcancel", function () { off(); });
+    btn.addEventListener("mousedown", on);
+    btn.addEventListener("mouseup", off);
+    btn.addEventListener("mouseleave", off);
+  }
+  bindHold(driftBtn, function () {
+    Input.setButtonDrift(true);
+    driftBtn.classList.add("held");
+  }, function () {
+    Input.setButtonDrift(false);
+    driftBtn.classList.remove("held");
+  });
+  fireBtn.addEventListener("touchstart", function (e) { e.preventDefault(); Input.pressFire(); }, { passive: false });
+  fireBtn.addEventListener("mousedown", function () { Input.pressFire(); });
+
   /* ---------------- update ---------------- */
 
   function update(dt) {
-    if (state === "menu") {
+    if (state === "menu" || state === "select") {
       demoZ = (demoZ + MAX_SPEED * 0.45 * dt) % trackLen;
       const seg = segAt(demoZ);
       demoX += ((-seg.curve * 0.12) - demoX) * dt * 2;
@@ -566,6 +746,7 @@
       if (player) {
         updatePlayer(dt);
         for (const c of cars) updateCar(c, dt, true);
+        updateMissiles(dt);
         rankRacers();
         if (state === "results" && overlay.classList.contains("hidden")) {
           finishT += dt;
@@ -737,9 +918,12 @@
         if (item.type === "coin") Sprites.coin(sx, p1.y, p1.w * 0.10, raceT + segIdx);
         else if (item.type === "cone") Sprites.cone(sx, p1.y, p1.w * 0.085);
         else if (item.type === "oil") Sprites.oil(sx, p1.y, p1.w * 0.22);
+        else if (item.type === "box" && raceT > (item.deadUntil || 0)) {
+          Sprites.itemBox(sx, p1.y, p1.w * 0.13, raceT + segIdx * 0.7);
+        }
       }
 
-      // AI karts on this segment
+      // AI karts and missiles on this segment
       for (const c of cars) {
         let rel = zOf(c) - camZ;
         if (rel < -trackLen / 2) rel += trackLen;
@@ -750,7 +934,18 @@
         const x = lerp(p1.x, p2.x, pct) + lerp(p1.w, p2.w, pct) * c.x;
         const y = lerp(p1.y, p2.y, pct);
         const kw = lerp(p1.w, p2.w, pct) * 0.34;
-        Sprites.kart(x, y, kw, c.color, { steer: 0, time: raceT });
+        const spin = c.spinT > 0 ? Math.sin((1.3 - c.spinT) * 12) * 2 : 0;
+        Sprites.kart(x, y, kw, c.color, { steer: spin, time: raceT });
+      }
+      for (const m of missiles) {
+        let rel = m.z - camZ;
+        if (rel < -trackLen / 2) rel += trackLen;
+        if (rel > trackLen / 2) rel -= trackLen;
+        const mn = Math.floor(rel / SEG_LEN + basePct);
+        if (mn !== n) continue;
+        const pct = (rel / SEG_LEN + basePct) - mn;
+        const x = lerp(p1.x, p2.x, pct) + lerp(p1.w, p2.w, pct) * m.x;
+        Sprites.missile(x, lerp(p1.y, p2.y, pct), lerp(p1.w, p2.w, pct) * 0.12, raceT);
       }
     }
 
@@ -779,7 +974,7 @@
     R.clear(pal.skyTop[0], pal.skyTop[1], pal.skyTop[2]);
 
     let camZ, camX, showPlayer;
-    if (state === "menu") {
+    if (state === "menu" || state === "select") {
       camZ = demoZ;
       camX = demoX;
       showPlayer = false;

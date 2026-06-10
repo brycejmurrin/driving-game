@@ -112,6 +112,85 @@ html, body {
   white-space: pre-line;
 }
 
+#trackselect[hidden] {
+  display: none;
+}
+
+#trackselect {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+#trackselect button {
+  min-width: 250px;
+  min-height: 46px;
+  background: rgba(10, 16, 34, 0.75);
+  border: 1px solid var(--accent, rgba(51, 230, 242, 0.6));
+  border-radius: 8px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#trackselect button:active {
+  transform: scale(0.96);
+}
+
+#trackselect button.gp {
+  border-width: 2px;
+  font-size: 16px;
+}
+
+#firebtn[hidden],
+#driftbtn[hidden] {
+  display: none;
+}
+
+#firebtn,
+#driftbtn {
+  position: fixed;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: rgba(10, 16, 34, 0.5);
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  z-index: 4;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+#firebtn {
+  left: 14px;
+  border: 2px solid rgba(255, 120, 60, 0.8);
+  font-size: 26px;
+}
+
+#driftbtn {
+  right: 14px;
+  border: 2px solid rgba(51, 230, 242, 0.8);
+}
+
+#firebtn:active,
+#driftbtn:active,
+#driftbtn.held {
+  background: rgba(51, 230, 242, 0.25);
+  transform: scale(0.94);
+}
+
 #prompt {
   margin-top: 18px;
   font-size: 17px;

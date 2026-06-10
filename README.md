@@ -7,29 +7,34 @@ and [Neon Slice](https://github.com/brycejmurrin/pizza): same engine
 style, this time with an engine.
 
 The track is a classic pseudo-3D segmented road (OutRun style). Race five
-rivals across three circuits — three laps each — grabbing coins, hitting
-boost pads, and dodging cones and oil slicks. The headline feature:
-**steer by tilting your phone**, using the device gyroscope.
+rivals across **six circuits** — pick one from the select screen or run
+the full Grand Prix — grabbing coins, weapon boxes, and boost pads while
+dodging cones and oil slicks. The headline feature: **steer by tilting
+your phone**, using the device gyroscope.
 
 ## How to play
 
 - **Mobile (tilt):** tilt the phone left/right to steer — it calibrates to
-  how you're holding it at the countdown. Touch and hold anywhere to
-  drift, release for a boost. On iOS the browser will ask permission to
-  use motion sensors on your first tap.
+  how you're holding it at the countdown. Hold the on-screen **DRIFT**
+  button (or just touch and hold the road) through corners, release for a
+  boost. On iOS the browser will ask permission to use motion sensors on
+  your first tap.
 - **Mobile (no gyro):** touch the left/right half of the screen to steer;
-  a second finger drifts. Toggle `TILT` in the pause menu, and
+  the DRIFT button still drifts. Toggle `TILT` in the pause menu, and
   `RECALIBRATE TILT` if your neutral position changes.
 - **Desktop:** `←`/`→` or `A`/`D` steer, `Space` drift (release for
-  boost), `↓`/`S` brake, `P`/`Esc` pause.
+  boost), `X` fire weapon, `↓`/`S` brake, `P`/`Esc` pause.
 - Acceleration is automatic. Drift through corners to charge a mini-boost
   — sparks turn blue when the big boost is ready.
+- **? boxes** hold a random weapon, shown on the fire button:
+  🚀 **missile** homes in on the kart ahead and spins it out, ⚡ **boost**
+  is instant speed, 💧 **oil** drops a slick behind you that spins out
+  pursuers. Boxes respawn a few seconds after being taken.
 - **Coins** are 25 points each. **Boost pads** (glowing chevrons) give a
   free boost. **Cones** spin you out; **oil** scrambles your steering —
   a well-timed drift hop clears both.
 - Finish bonus: 1200 / 900 / 650 / 450 / 300 / 200 by place. Score
-  accumulates across the three-race Grand Prix; the high score is saved
-  locally.
+  accumulates across the Grand Prix; the high score is saved locally.
 
 ## Tilt controls, technically
 

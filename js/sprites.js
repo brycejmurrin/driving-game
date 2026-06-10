@@ -139,6 +139,35 @@ const Sprites = (function () {
     R.quad(x - w * 0.55, y - h - pw * 2.4, w * 1.1, pw * 0.5, [1, 1, 1, 0.5]);
   }
 
+  // Floating weapon item box: spinning rainbow-shifting cube with a "?".
+  function itemBox(x, y, w, t) {
+    const bob = Math.sin(t * 3) * w * 0.18;
+    const cy = y - w * 0.85 + bob;
+    const hue = t * 1.4;
+    const col = [
+      0.55 + 0.45 * Math.sin(hue),
+      0.55 + 0.45 * Math.sin(hue + 2.1),
+      0.55 + 0.45 * Math.sin(hue + 4.2),
+      0.85,
+    ];
+    R.rotQuad(x, cy, w, w, t * 1.8, col);
+    R.rotQuad(x, cy, w * 0.72, w * 0.72, -t * 1.8, [1, 1, 1, 0.35]);
+    // "?" approximated with a hook and a dot
+    R.arc(x, cy - w * 0.08, w * 0.13, w * 0.2, -Math.PI * 0.9, Math.PI * 0.35, [1, 1, 1, 0.95], 8);
+    R.circle(x, cy + w * 0.26, w * 0.05, [1, 1, 1, 0.95], 6);
+  }
+
+  // Player missile: glowing bolt with a trail.
+  function missile(x, y, w, t) {
+    const cy = y - w * 0.6;
+    R.circle(x, cy, w * 0.55, [1.0, 0.6, 0.2, 0.25], 10);
+    R.circle(x, cy, w * 0.3, [1.0, 0.75, 0.3, 1], 10);
+    R.circle(x, cy, w * 0.15, [1, 1, 1, 1], 8);
+    const f = (Math.sin(t * 50) * 0.5 + 0.5) * w * 0.5;
+    R.tri(x - w * 0.2, cy + w * 0.15, x + w * 0.2, cy + w * 0.15,
+          x, cy + w * 0.8 + f, [1.0, 0.5, 0.1, 0.8]);
+  }
+
   // Start/finish banner with checkered flag pattern.
   function startArch(x, y, w) {
     const h = w * 0.34;
@@ -156,5 +185,5 @@ const Sprites = (function () {
     }
   }
 
-  return { kart, cone, oil, coin, pylon, arch, startArch };
+  return { kart, cone, oil, coin, pylon, arch, startArch, itemBox, missile };
 })();

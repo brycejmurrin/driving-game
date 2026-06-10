@@ -179,26 +179,129 @@ const GameAudio = (function () {
     blip(740, "square", 0.15, 0.005, 0.08);
   }
 
+  function itemGet() {
+    [523, 659, 784].forEach(function (f, i) {
+      blip(f, "square", 0.16, 0.01, 0.09, null, i * 0.06);
+    });
+  }
+
+  function fireMissile() {
+    blip(880, "sawtooth", 0.25, 0.01, 0.4, 220);
+    noise(0.18, 0.35, 3000);
+  }
+
+  function explosion() {
+    blip(90, "square", 0.35, 0.005, 0.3, 40);
+    noise(0.3, 0.4, 900);
+  }
+
+  function dropOil() {
+    blip(300, "sine", 0.2, 0.02, 0.25, 90);
+  }
+
   /* ---------------- music ---------------- */
 
-  // Two-bar synthwave vamp: Am — F. Bass on eighths, arp on top.
-  const BASS = [110, 110, 110, 110, 87.3, 87.3, 87.3, 87.3];
-  const ARP = [440, 523, 659, 523, 349, 440, 523, 440];
+  /*
+   * Lookahead sequencer: a JS timer wakes every 25ms and schedules any
+   * notes that fall within the next 120ms on the WebAudio clock, so
+   * playback stays sample-accurate even when the main thread hiccups.
+   * Four-bar synthwave loop in A minor: Am — Am — F — G.
+   */
+  const TEMPO = 132;
+  const STEP_DUR = 60 / TEMPO / 4;          // one 16th note
+  const PATTERN_LEN = 64;                   // 4 bars of 16ths
 
-  function tick() {
+  // chord roots per bar (A2, A2, F2, G2)
+  const ROOTS = [110, 110, 87.31, 98];
+
+  // lead melody, one entry per 16th (0 = rest), repeats every 4 bars
+  const LEAD = [
+    440, 0, 523, 0, 659, 0, 523, 659,  880, 0, 659, 0, 523, 0, 440, 0,
+    440, 0, 523, 0, 659, 0, 880, 0,    784, 659, 523, 0, 659, 0, 0, 0,
+    349, 0, 440, 0, 523, 0, 440, 523,  698, 0, 523, 0, 440, 0, 349, 0,
+    392, 0, 494, 0, 587, 0, 494, 587,  784, 0, 587, 740, 784, 0, 880, 0,
+  ];
+
+  let nextNoteT = 0;
+
+  function musicNote(freq, type, peak, dur, t0) {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(peak, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g).connect(master);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.05);
+  }
+
+  function kick(t0) {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(130, t0);
+    osc.frequency.exponentialRampToValueAtTime(40, t0 + 0.1);
+    g.gain.setValueAtTime(0.5, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+    osc.connect(g).connect(master);
+    osc.start(t0);
+    osc.stop(t0 + 0.2);
+  }
+
+  function hat(t0, open) {
+    const len = Math.ceil(ctx.sampleRate * 0.06);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = "highpass";
+    f.frequency.value = 6500;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(open ? 0.16 : 0.09, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (open ? 0.06 : 0.03));
+    src.connect(f).connect(g).connect(master);
+    src.start(t0);
+  }
+
+  function playStep(i, t0) {
+    const bar = Math.floor(i / 16);
+    const root = ROOTS[bar];
+
+    if (i % 2 === 0) {                       // bass on eighths, octave bounce
+      const f = (i % 4 === 2) ? root * 2 : root;
+      musicNote(f, "triangle", 0.30, STEP_DUR * 1.8, t0);
+      musicNote(f, "square", 0.07, STEP_DUR * 1.6, t0);
+    }
+    if (i % 4 === 0) kick(t0);
+    if (i % 4 === 2) hat(t0, i % 16 === 14);
+    const lead = LEAD[i];
+    if (lead) musicNote(lead, "sawtooth", 0.10, STEP_DUR * 2.2, t0);
+    if (i % 16 === 0) {                      // soft pad chord on bar starts
+      musicNote(root * 4, "triangle", 0.05, STEP_DUR * 14, t0);
+      musicNote(root * 4 * 1.1892, "triangle", 0.05, STEP_DUR * 14, t0); // minor 3rd
+    }
+  }
+
+  function scheduler() {
     if (!musicOn || !ctx) return;
-    const i = step % 8;
-    blip(BASS[i], "triangle", 0.16, 0.01, 0.16);
-    blip(ARP[i], "square", 0.05, 0.01, 0.1);
-    if (i === 0 || i === 4) noise(0.06, 0.05, 5000); // hat-ish accent
-    step++;
+    while (nextNoteT < ctx.currentTime + 0.12) {
+      playStep(step % PATTERN_LEN, nextNoteT);
+      nextNoteT += STEP_DUR;
+      step++;
+    }
   }
 
   function startMusic() {
     if (!ctx || musicOn) return;
+    if (ctx.state === "suspended") ctx.resume();
     musicOn = true;
     step = 0;
-    musicTimer = setInterval(tick, 170);
+    nextNoteT = ctx.currentTime + 0.06;
+    musicTimer = setInterval(scheduler, 25);
   }
 
   function stopMusic() {
@@ -225,6 +328,10 @@ const GameAudio = (function () {
     lap,
     finish,
     uiSelect,
+    itemGet,
+    fireMissile,
+    explosion,
+    dropOil,
     startMusic,
     stopMusic,
   };

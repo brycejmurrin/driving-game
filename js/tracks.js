@@ -71,6 +71,13 @@ const Tracks = (function () {
   function cone(segs, i, x) { put(segs, i, "cone", x); }
   function oil(segs, i, x) { put(segs, i, "oil", x); }
 
+  // a rank of three weapon item boxes across the road
+  function boxRow(segs, i) {
+    put(segs, i, "box", -0.5);
+    put(segs, i, "box", 0);
+    put(segs, i, "box", 0.5);
+  }
+
   function autoScenery(segs) {
     for (let i = 0; i < segs.length; i++) {
       if (i % 9 === 4) {
@@ -111,6 +118,8 @@ const Tracks = (function () {
     cone(s, 292, -0.5);
     cone(s, 600, 0);
     oil(s, 420, 0.2);
+    boxRow(s, 60);
+    boxRow(s, 450);
     autoScenery(s);
     return {
       name: "SUNRISE CIRCUIT",
@@ -159,6 +168,9 @@ const Tracks = (function () {
     cone(s, 620, 0.35);
     oil(s, 310, -0.25);
     oil(s, 540, 0.3);
+    boxRow(s, 55);
+    boxRow(s, 410);
+    boxRow(s, 760);
     autoScenery(s);
     return {
       name: "NEON SPIRAL",
@@ -212,6 +224,9 @@ const Tracks = (function () {
     oil(s, 250, 0.25);
     oil(s, 370, -0.3);
     oil(s, 610, 0);
+    boxRow(s, 45);
+    boxRow(s, 350);
+    boxRow(s, 690);
     autoScenery(s);
     return {
       name: "MIDNIGHT GORGE",
@@ -229,8 +244,168 @@ const Tracks = (function () {
     };
   }
 
+  function auroraPass() {
+    const s = [];
+    straight(s, 60);
+    curve(s, 50, 2.5, 3);
+    curve(s, 50, -2.5, 3);
+    curve(s, 50, 2.5, -2);
+    straight(s, 40, -4);
+    curve(s, 70, -3.5);
+    straight(s, 60, 3);
+    curve(s, 50, 3, -3);
+    curve(s, 50, -3);
+    straight(s, 80, 2);
+    curve(s, 60, 4, -2);
+    closeLoop(s, 60);
+
+    coinArc(s, 75, 7, -0.5, 0.5);
+    coinArc(s, 175, 7, 0.5, -0.5);
+    coinRow(s, 340, 6, 0);
+    coinArc(s, 520, 6, -0.4, 0.4);
+    coinRow(s, 680, 5, 0.35);
+    pad(s, 140, 0);
+    pad(s, 430, -0.35);
+    pad(s, 640, 0.3);
+    cone(s, 240, 0.45);
+    cone(s, 242, -0.3);
+    cone(s, 590, 0.1);
+    oil(s, 380, 0.25);
+    oil(s, 500, -0.2);
+    boxRow(s, 50);
+    boxRow(s, 390);
+    boxRow(s, 720);
+    autoScenery(s);
+    return {
+      name: "AURORA PASS",
+      laps: 3,
+      segs: s,
+      palette: {
+        skyTop: [0.01, 0.04, 0.07], skyBot: [0.05, 0.40, 0.32],
+        sun: [0.55, 1.0, 0.7], sunLo: [0.15, 0.75, 0.85],
+        groundA: [0.02, 0.07, 0.06], groundB: [0.03, 0.09, 0.08],
+        roadA: [0.09, 0.13, 0.14], roadB: [0.07, 0.11, 0.12],
+        rumbleA: [0.25, 1.0, 0.55], rumbleB: [0.9, 0.95, 1.0],
+        lane: [0.85, 1.0, 0.9],
+        glow: [0.3, 1.0, 0.6],
+      },
+    };
+  }
+
+  function crimsonCanyon() {
+    const s = [];
+    straight(s, 70);
+    curve(s, 90, 3, -3);
+    straight(s, 40, 2);
+    curve(s, 40, -5.5, 2);
+    curve(s, 30, 5.5);
+    straight(s, 60, -2);
+    curve(s, 80, -3);
+    straight(s, 50, 4);
+    curve(s, 50, 4.5, -4);
+    straight(s, 40);
+    curve(s, 60, -4, 1);
+    curve(s, 40, 2.5, -1);
+    closeLoop(s, 60);
+
+    coinRow(s, 90, 6, -0.3);
+    coinArc(s, 230, 7, 0.5, -0.5);
+    coinRow(s, 400, 5, 0.4);
+    coinArc(s, 560, 6, -0.5, 0.4);
+    coinRow(s, 700, 6, 0);
+    pad(s, 160, 0.3);
+    pad(s, 470, 0);
+    pad(s, 680, -0.3);
+    cone(s, 210, -0.45);
+    cone(s, 212, 0.25);
+    cone(s, 520, 0.5);
+    cone(s, 522, -0.15);
+    oil(s, 300, 0);
+    oil(s, 620, 0.3);
+    boxRow(s, 55);
+    boxRow(s, 370);
+    boxRow(s, 730);
+    autoScenery(s);
+    return {
+      name: "CRIMSON CANYON",
+      laps: 3,
+      segs: s,
+      palette: {
+        skyTop: [0.06, 0.01, 0.03], skyBot: [0.65, 0.22, 0.07],
+        sun: [1.0, 0.85, 0.35], sunLo: [1.0, 0.4, 0.1],
+        groundA: [0.09, 0.03, 0.03], groundB: [0.12, 0.04, 0.04],
+        roadA: [0.14, 0.10, 0.11], roadB: [0.12, 0.08, 0.09],
+        rumbleA: [1.0, 0.5, 0.15], rumbleB: [0.95, 0.9, 0.85],
+        lane: [1.0, 0.92, 0.8],
+        glow: [1.0, 0.5, 0.2],
+      },
+    };
+  }
+
+  function starlightBay() {
+    const s = [];
+    straight(s, 100);
+    curve(s, 40, -3, 1.5);
+    curve(s, 40, 3, -1.5);
+    straight(s, 80);
+    curve(s, 70, 5, 2);
+    straight(s, 40, -2);
+    curve(s, 40, -2.5);
+    curve(s, 40, 2.5);
+    straight(s, 70, 3);
+    curve(s, 80, -4.5, -3);
+    straight(s, 50);
+    curve(s, 50, 3.5);
+    closeLoop(s, 70);
+
+    coinRow(s, 110, 7, 0);
+    coinArc(s, 250, 6, -0.45, 0.45);
+    coinRow(s, 420, 6, -0.35);
+    coinArc(s, 570, 7, 0.5, -0.5);
+    coinRow(s, 730, 5, 0.3);
+    pad(s, 60, -0.3);
+    pad(s, 330, 0.35);
+    pad(s, 700, 0);
+    cone(s, 190, 0.2);
+    cone(s, 192, -0.5);
+    cone(s, 480, 0.45);
+    cone(s, 482, -0.2);
+    oil(s, 290, -0.25);
+    oil(s, 640, 0.2);
+    boxRow(s, 70);
+    boxRow(s, 400);
+    boxRow(s, 760);
+    autoScenery(s);
+    return {
+      name: "STARLIGHT BAY",
+      laps: 3,
+      segs: s,
+      palette: {
+        skyTop: [0.0, 0.01, 0.07], skyBot: [0.14, 0.18, 0.55],
+        sun: [0.75, 0.85, 1.0], sunLo: [0.85, 0.4, 1.0],
+        groundA: [0.02, 0.03, 0.09], groundB: [0.03, 0.04, 0.12],
+        roadA: [0.10, 0.11, 0.18], roadB: [0.08, 0.09, 0.15],
+        rumbleA: [0.45, 0.6, 1.0], rumbleB: [1.0, 0.45, 0.85],
+        lane: [0.9, 0.92, 1.0],
+        glow: [0.5, 0.6, 1.0],
+      },
+    };
+  }
+
+  // Order is the GP running order: difficulty ramps up.
+  const list = [sunriseCircuit, neonSpiral, auroraPass, starlightBay, crimsonCanyon, midnightGorge];
+  const meta = [
+    { name: "SUNRISE CIRCUIT", color: "#ff4d8c" },
+    { name: "NEON SPIRAL", color: "#8c4dff" },
+    { name: "AURORA PASS", color: "#4dff99" },
+    { name: "STARLIGHT BAY", color: "#7a99ff" },
+    { name: "CRIMSON CANYON", color: "#ff8033" },
+    { name: "MIDNIGHT GORGE", color: "#ff4dcc" },
+  ];
+
   return {
     SEG_LEN,
-    list: [sunriseCircuit, neonSpiral, midnightGorge],
+    list,
+    meta,
   };
 })();
