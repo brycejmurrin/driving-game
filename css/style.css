@@ -32,7 +32,7 @@ html, body {
   right: 0;
   display: flex;
   justify-content: space-between;
-  padding: 0 14px;
+  padding: 0 calc(14px + env(safe-area-inset-right)) 0 calc(14px + env(safe-area-inset-left));
   pointer-events: none;
   text-align: center;
 }
@@ -174,13 +174,13 @@ html, body {
 }
 
 #firebtn {
-  left: 14px;
+  left: calc(14px + env(safe-area-inset-left));
   border: 2px solid rgba(255, 120, 60, 0.8);
   font-size: 26px;
 }
 
 #driftbtn {
-  right: 14px;
+  right: calc(14px + env(safe-area-inset-right));
   border: 2px solid rgba(51, 230, 242, 0.8);
 }
 
@@ -215,8 +215,8 @@ html, body {
   touch-action: none;
 }
 
-#steerleft { left: 14px; }
-#steerright { right: 14px; }
+#steerleft { left: calc(14px + env(safe-area-inset-left)); }
+#steerright { right: calc(14px + env(safe-area-inset-right)); }
 
 #steerleft:active,
 #steerright:active,
@@ -273,7 +273,7 @@ body.btnsteer #firebtn {
 #pausebtn {
   position: fixed;
   top: calc(48px + env(safe-area-inset-top));
-  right: 10px;
+  right: calc(10px + env(safe-area-inset-right));
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -297,7 +297,7 @@ body.btnsteer #firebtn {
 #soundbtn {
   position: fixed;
   top: calc(48px + env(safe-area-inset-top));
-  right: 10px;
+  right: calc(10px + env(safe-area-inset-right));
   min-width: 72px;
   height: 44px;
   border-radius: 22px;
@@ -518,6 +518,16 @@ body.btnsteer #firebtn {
 .hi-y {
   color: #ffd740;
   font-weight: 800;
+}
+
+#safe-probe {
+  position: fixed;
+  top: 0;
+  left: env(safe-area-inset-left, 0px);
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 #nogl[hidden] {

@@ -58,7 +58,12 @@
   const helpBtn = document.getElementById("helpbtn");
   const howToPlay = document.getElementById("howtoplay");
   const howToPlayClose = document.getElementById("howtoplay-close");
+  const safeProbe = document.getElementById("safe-probe");
   const isTouch = "ontouchstart" in window;
+
+  function safeAreaLeft() {
+    return safeProbe ? safeProbe.getBoundingClientRect().left : 0;
+  }
 
   if (!Renderer.init(canvas)) {
     document.getElementById("nogl").hidden = false;
@@ -245,7 +250,7 @@
   function drawMinimap() {
     if (!mmPts || !player) return;
     const size = Math.min(R.width, R.height) * 0.22;
-    const mx = 12, my = 58;
+    const mx = 12 + safeAreaLeft(), my = 58;
     const g = track.palette.glow;
     for (let i = 0; i < mmPts.length; i += 3) {
       const p = mmPts[i];
@@ -1216,7 +1221,15 @@
 
   window.addEventListener("resize", function () { R.resize(); });
   window.addEventListener("orientationchange", function () {
-    setTimeout(function () { R.resize(); }, 250);
+    setTimeout(function () {
+      R.resize();
+      if (Input.tiltActive()) {
+        Input.calibrate();
+        if (state === "race" || state === "count") {
+          announce("TILT RESET", 900);
+        }
+      }
+    }, 300);
   });
   // iOS ignores user-scalable=no for pinch zoom; block the gesture so
   // zooming can't rescale the canvas mid-race
