@@ -54,6 +54,7 @@
   const steerLBtn = document.getElementById("steerleft");
   const steerRBtn = document.getElementById("steerright");
   const soundBtn = document.getElementById("soundbtn");
+  const elAudioState = document.getElementById("audiostate");
   const isTouch = "ontouchstart" in window;
 
   if (!Renderer.init(canvas)) {
@@ -763,6 +764,7 @@
   function update(dt) {
     syncSteerButtons();
     if (state === "menu" || state === "select") {
+      elAudioState.textContent = "audio: " + GameAudio.status();
       demoZ = (demoZ + MAX_SPEED * 0.45 * dt) % trackLen;
       const seg = segAt(demoZ);
       demoX += ((-seg.curve * 0.12) - demoX) * dt * 2;

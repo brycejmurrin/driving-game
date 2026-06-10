@@ -43,8 +43,9 @@ const GameAudio = (function () {
   }
 
   function init() {
+    // init is only ever called from a user gesture
     if (ctx) {
-      resumeIfNeeded();
+      resumeIfNeeded(true);
       return;
     }
     if (!createCtx()) return;
@@ -70,18 +71,39 @@ const GameAudio = (function () {
     }
   }
 
-  function resumeIfNeeded() {
-    if (!ctx || ctx.state === "running") return;
-    ctx.resume();
-    // iOS can leave a context permanently stuck (after a phone call,
-    // an "interrupted" state, or a hardware sample-rate change). If
-    // resume doesn't take, throw the context away and rebuild it.
-    setTimeout(function () {
-      if (ctx && ctx.state !== "running" && rebuildTries < 3) {
-        rebuildTries++;
-        rebuildCtx();
-      }
-    }, 400);
+  let lastFailedResume = 0;
+
+  /*
+   * Resume the context if it isn't running. ctx.resume() is async and
+   * slow on iOS, so never tear the context down on a timer — a context
+   * that's about to start would be destroyed, and one created outside a
+   * user gesture can never be unlocked. Instead: if a PREVIOUS gesture
+   * tried to resume and the context still isn't running by the time a
+   * later gesture arrives, rebuild inside that gesture.
+   */
+  function resumeIfNeeded(gestureEv) {
+    if (!ctx) return;
+    if (ctx.state === "running") {
+      rebuildTries = 0;
+      lastFailedResume = 0;
+      return;
+    }
+    const isGesture = !!gestureEv;
+    if (isGesture && lastFailedResume &&
+        Date.now() - lastFailedResume > 700 && rebuildTries < 3) {
+      rebuildTries++;
+      lastFailedResume = 0;
+      rebuildCtx();
+      return;
+    }
+    if (isGesture) lastFailedResume = Date.now();
+    const p = ctx.resume();
+    if (p && p.then) {
+      p.then(function () {
+        rebuildTries = 0;
+        lastFailedResume = 0;
+      }).catch(function () {});
+    }
   }
 
   function rebuildCtx() {
@@ -366,7 +388,10 @@ const GameAudio = (function () {
     src.start(t0);
   }
 
+  let notesScheduled = 0;   // diagnostics: proves the sequencer is alive
+
   function playStep(i, t0) {
+    notesScheduled++;
     const bar = Math.floor(i / 16);
     const root = ROOTS[bar];
 
@@ -428,8 +453,18 @@ const GameAudio = (function () {
     musicTimer = null;
   }
 
+  // one-line health summary for the on-screen indicator
+  function status() {
+    if (!ctx) return "tap to start";
+    let s = ctx.state;
+    if (muted) s += " · muted";
+    if (musicOn) s += " · ♪" + notesScheduled;
+    return s;
+  }
+
   return {
     init,
+    status,
     setMuted,
     get muted() { return muted; },
     startEngine,

@@ -246,6 +246,12 @@ body.btnsteer #driftbtn {
   50% { opacity: 0.35; }
 }
 
+#audiostate {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: rgba(191, 234, 255, 0.55);
+}
+
 #pausebtn[hidden],
 #pausemenu[hidden] {
   display: none;
