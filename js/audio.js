@@ -349,25 +349,63 @@ const GameAudio = (function () {
    * throttles whichever one it feels like, but rarely both at once, and
    * the wide lookahead rides out the gaps. If we ever fall behind (tab
    * frozen, long GC) we skip forward instead of burst-playing the gap.
-   * Four-bar synthwave loop in A minor: Am — Am — F — G. The mix leans
-   * on mid/high harmonics (saws, octave doubles) because phone speakers
-   * reproduce almost nothing below ~300Hz.
+   *
+   * Three 4-bar songs (16th-note grid, 64 steps), picked per circuit.
+   * The mix leans on mid/high harmonics (saws, octave doubles) because
+   * phone speakers reproduce almost nothing below ~300Hz.
    */
-  const TEMPO = 132;
-  const STEP_DUR = 60 / TEMPO / 4;          // one 16th note
   const PATTERN_LEN = 64;                   // 4 bars of 16ths
   const LOOKAHEAD = 0.3;
 
-  // chord roots per bar (A2, A2, F2, G2)
-  const ROOTS = [110, 110, 87.31, 98];
-
-  // lead melody, one entry per 16th (0 = rest), repeats every 4 bars
-  const LEAD = [
-    440, 0, 523, 0, 659, 0, 523, 659,  880, 0, 659, 0, 523, 0, 440, 0,
-    440, 0, 523, 0, 659, 0, 880, 0,    784, 659, 523, 0, 659, 0, 0, 0,
-    349, 0, 440, 0, 523, 0, 440, 523,  698, 0, 523, 0, 440, 0, 349, 0,
-    392, 0, 494, 0, 587, 0, 494, 587,  784, 0, 587, 740, 784, 0, 880, 0,
+  const SONGS = [
+    { // SUNSET RUN — Am F C G, bright and driving
+      tempo: 144,
+      roots: [110, 87.31, 130.81, 98],
+      drive: false,
+      lead: [
+        440, 0, 523, 587, 659, 0, 587, 523,  440, 0, 523, 0, 659, 587, 523, 0,
+        523, 0, 440, 0, 349, 0, 440, 523,    698, 0, 659, 587, 523, 0, 440, 0,
+        523, 0, 587, 659, 784, 0, 659, 587,  523, 0, 659, 0, 784, 0, 1047, 0,
+        494, 0, 587, 0, 784, 740, 659, 587,  494, 587, 659, 0, 587, 0, 494, 0,
+      ],
+    },
+    { // HYPERDRIVE — C G Am F, the fastest and poppiest
+      tempo: 152,
+      roots: [130.81, 98, 110, 87.31],
+      drive: true,
+      lead: [
+        523, 659, 784, 0, 1047, 0, 784, 659,  523, 0, 659, 784, 1047, 0, 1319, 0,
+        494, 587, 784, 0, 988, 0, 784, 587,   494, 0, 587, 784, 988, 784, 587, 0,
+        440, 523, 659, 0, 880, 0, 659, 523,   440, 0, 523, 659, 880, 0, 1047, 0,
+        698, 0, 880, 698, 1047, 0, 880, 698,  784, 880, 1047, 0, 1319, 1047, 880, 0,
+      ],
+    },
+    { // NIGHT CHASE — Dm Bb F C, tense but pushing forward
+      tempo: 148,
+      roots: [146.83, 116.54, 174.61, 130.81],
+      drive: true,
+      lead: [
+        587, 0, 698, 587, 880, 0, 698, 587,   587, 698, 880, 0, 1175, 0, 880, 0,
+        587, 0, 466, 0, 698, 587, 466, 0,     932, 0, 880, 698, 587, 0, 698, 0,
+        698, 0, 880, 0, 1047, 880, 698, 0,    698, 880, 1047, 0, 1397, 0, 1047, 0,
+        784, 0, 659, 784, 1047, 0, 784, 659,  587, 659, 784, 0, 880, 784, 698, 0,
+      ],
+    },
   ];
+
+  let songIdx = 0;
+  let stepDur = 60 / SONGS[0].tempo / 4;    // one 16th note for the song
+
+  function setSong(i) {
+    const next = ((i % SONGS.length) + SONGS.length) % SONGS.length;
+    if (next === songIdx && musicOn) return;
+    songIdx = next;
+    stepDur = 60 / SONGS[songIdx].tempo / 4;
+    if (musicOn) {                          // restart re-synced on the new song
+      stopMusic();
+      startMusic();
+    }
+  }
 
   let nextNoteT = 0;
 
@@ -428,27 +466,57 @@ const GameAudio = (function () {
 
   let notesScheduled = 0;   // diagnostics: proves the sequencer is alive
 
+  function snare(t0) {
+    const len = Math.ceil(ctx.sampleRate * 0.1);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = "highpass";
+    f.frequency.value = 1600;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.22, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.1);
+    src.connect(f).connect(g).connect(master);
+    src.start(t0);
+    // body thump
+    const osc = ctx.createOscillator();
+    const og = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(220, t0);
+    og.gain.setValueAtTime(0.15, t0);
+    og.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.08);
+    osc.connect(og).connect(master);
+    osc.start(t0);
+    osc.stop(t0 + 0.1);
+  }
+
   function playStep(i, t0) {
     notesScheduled++;
+    const song = SONGS[songIdx];
     const bar = Math.floor(i / 16);
-    const root = ROOTS[bar];
+    const root = song.roots[bar];
 
     if (i % 2 === 0) {                       // bass on eighths, octave bounce
       const f = (i % 4 === 2) ? root * 2 : root;
       // saws + octave double: harmonics survive a phone speaker
-      musicNote(f, "sawtooth", 0.20, STEP_DUR * 1.8, t0);
-      musicNote(f * 2, "square", 0.10, STEP_DUR * 1.6, t0);
+      musicNote(f, "sawtooth", 0.20, stepDur * 1.8, t0);
+      musicNote(f * 2, "square", 0.10, stepDur * 1.6, t0);
     }
     if (i % 4 === 0) kick(t0);
+    if (i % 8 === 4) snare(t0);              // backbeat
     if (i % 4 === 2) hat(t0, i % 16 === 14);
-    const lead = LEAD[i];
+    if (song.drive && i % 2 === 1) hat(t0, false); // 16th drive on fast songs
+    const lead = song.lead[i];
     if (lead) {
-      musicNote(lead, "sawtooth", 0.15, STEP_DUR * 2.4, t0);
-      musicNote(lead * 1.005, "sawtooth", 0.09, STEP_DUR * 2.4, t0); // detune shimmer
+      musicNote(lead, "sawtooth", 0.15, stepDur * 2.4, t0);
+      musicNote(lead * 1.005, "sawtooth", 0.09, stepDur * 2.4, t0); // detune shimmer
     }
     if (i % 16 === 0) {                      // soft pad chord on bar starts
-      musicNote(root * 4, "triangle", 0.06, STEP_DUR * 14, t0);
-      musicNote(root * 4 * 1.1892, "triangle", 0.06, STEP_DUR * 14, t0); // minor 3rd
+      musicNote(root * 4, "triangle", 0.06, stepDur * 14, t0);
+      musicNote(root * 4 * 1.1892, "triangle", 0.06, stepDur * 14, t0); // minor 3rd
     }
   }
 
@@ -457,13 +525,13 @@ const GameAudio = (function () {
     const now = ctx.currentTime;
     if (nextNoteT < now - 0.25) {
       // fell badly behind (frozen tab, long GC): jump ahead, stay on beat
-      const missed = Math.ceil((now + 0.05 - nextNoteT) / STEP_DUR);
-      nextNoteT += missed * STEP_DUR;
+      const missed = Math.ceil((now + 0.05 - nextNoteT) / stepDur);
+      nextNoteT += missed * stepDur;
       step += missed;
     }
     while (nextNoteT < now + LOOKAHEAD) {
       playStep(step % PATTERN_LEN, nextNoteT);
-      nextNoteT += STEP_DUR;
+      nextNoteT += stepDur;
       step++;
     }
   }
@@ -528,5 +596,7 @@ const GameAudio = (function () {
     land,
     startMusic,
     stopMusic,
+    setSong,
+    get songCount() { return SONGS.length; },
   };
 })();

@@ -200,6 +200,7 @@
     updateSoundBtn();
     announce(track.name, 1400);
     GameAudio.startEngine();
+    GameAudio.setSong(idx);     // each circuit gets its own tune
     GameAudio.startMusic();
     updateHud();
   }
