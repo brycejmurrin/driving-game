@@ -74,6 +74,7 @@
   let raceQueue = [0];            // track indices for this cup
   let queuePos = 0;
   let missiles = [];
+  let mmPts = null;               // minimap outline, one point per segment
 
   let player = null;
   let cars = [];
@@ -162,6 +163,7 @@
       boostT: 0, spinT: 0, slideT: 0, hopT: 0,
       driftCharge: 0, driftDir: 0, wasDrifting: false,
       steerVis: 0, driftVis: 0,
+      airT: 0, airTotal: 1,            // ramp jumps
       weapon: null,
     };
   }
@@ -175,6 +177,7 @@
     raceT = 0;
     finishT = 0;
     missiles = [];
+    buildMinimap();
 
     // grid: player starts at the back, AI staggered ahead
     player = makeRacer(true, 0, 0, 0.35);
@@ -199,6 +202,58 @@
     GameAudio.startEngine();
     GameAudio.startMusic();
     updateHud();
+  }
+
+  /*
+   * Minimap: integrate the per-segment curve into a heading and walk it
+   * to get an outline. Pseudo-3D tracks don't geometrically close, so
+   * the end-to-start error is distributed along the path to seal the loop.
+   */
+  function buildMinimap() {
+    const n = segs.length;
+    const pts = [];
+    let heading = 0, x = 0, y = 0;
+    for (let i = 0; i < n; i++) {
+      heading += segs[i].curve * 0.009;
+      x += Math.sin(heading);
+      y -= Math.cos(heading);
+      pts.push({ x: x, y: y });
+    }
+    for (let i = 0; i < n; i++) {
+      pts[i].x += -x * (i + 1) / n;
+      pts[i].y += -y * (i + 1) / n;
+    }
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const p of pts) {
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+    }
+    const span = Math.max(maxX - minX, maxY - minY) || 1;
+    const padX = (1 - (maxX - minX) / span) / 2;
+    const padY = (1 - (maxY - minY) / span) / 2;
+    mmPts = pts.map(function (p) {
+      return { x: (p.x - minX) / span + padX, y: (p.y - minY) / span + padY };
+    });
+  }
+
+  function drawMinimap() {
+    if (!mmPts || !player) return;
+    const size = Math.min(R.width * 0.2, 92);
+    const mx = 12, my = 58;
+    const g = track.palette.glow;
+    for (let i = 0; i < mmPts.length; i += 3) {
+      const p = mmPts[i];
+      R.quad(mx + p.x * size - 1, my + p.y * size - 1, 2, 2, [g[0], g[1], g[2], 0.4]);
+    }
+    const s0 = mmPts[6];
+    R.quad(mx + s0.x * size - 2, my + s0.y * size - 2, 4, 4, [1, 1, 1, 0.9]);
+    for (const c of cars) {
+      const p = mmPts[Math.floor(zOf(c) / SEG_LEN) % mmPts.length];
+      R.circle(mx + p.x * size, my + p.y * size, 2.4, [c.color[0], c.color[1], c.color[2], 1], 6);
+    }
+    const pp = mmPts[Math.floor(zOf(player) / SEG_LEN) % mmPts.length];
+    R.circle(mx + pp.x * size, my + pp.y * size, 3.8, [1, 1, 1, 1], 8);
+    R.circle(mx + pp.x * size, my + pp.y * size, 2.3, [0.2, 0.95, 1.0, 1], 8);
   }
 
   function zOf(r) { return (r.z0 + r.dist) % trackLen; }
@@ -226,10 +281,16 @@
 
     if (Input.consumeFire() && state === "race" && !p.finished) fireWeapon();
 
+    // airborne after a ramp: fly over hazards, limited control
+    const wasAir = p.airT > 0;
+    if (p.airT > 0) p.airT -= dt;
+    const airborne = p.airT > 0;
+    if (wasAir && !airborne) GameAudio.land();
+
     // throttle: automatic. Effects shape the target speed.
     let target = MAX_SPEED;
     if (p.boostT > 0) target *= BOOST_MULT;
-    if (Math.abs(p.x) > 1.04) target = MAX_SPEED * 0.35;     // off-road
+    if (Math.abs(p.x) > 1.04 && !airborne) target = MAX_SPEED * 0.35;  // off-road
     if (p.spinT > 0) target = MAX_SPEED * 0.2;
     if (Input.braking()) target = MAX_SPEED * 0.25;
     const k = p.speed > target ? 2.6 : (p.boostT > 0 ? 2.2 : 0.85);
@@ -262,9 +323,9 @@
     p.wasDrifting = wantDrift;
     if (p.hopT > 0) p.hopT -= dt;
 
-    const steerMult = drifting ? 1.45 : 1.0;
+    const steerMult = (drifting ? 1.45 : 1.0) * (airborne ? 0.35 : 1.0);
     p.x += steer * STEER_RATE * steerMult * clamp(speedPct, 0.15, 1) * dt;
-    p.x -= seg.curve * speedPct * speedPct * CENTRIF * dt;
+    p.x -= seg.curve * speedPct * speedPct * CENTRIF * (airborne ? 0.35 : 1.0) * dt;
     p.x = clamp(p.x, -1.7, 1.7);
 
     // advance
@@ -334,13 +395,20 @@
             }
             break;
           case "pad":
-            if (dx < 0.34) {
+            if (dx < 0.34 && p.airT <= 0) {
               if (p.boostT < 1.2) GameAudio.boostPad();
               p.boostT = Math.max(p.boostT, 1.3);
             }
             break;
+          case "ramp":
+            if (dx < 0.36 && p.airT <= 0 && p.speed > MAX_SPEED * 0.25) {
+              p.airTotal = 0.45 + 0.5 * (p.speed / MAX_SPEED);
+              p.airT = p.airTotal;
+              GameAudio.jump();
+            }
+            break;
           case "cone":
-            if (dx < 0.18 && p.spinT <= 0 && p.hopT <= 0) {
+            if (dx < 0.18 && p.spinT <= 0 && p.hopT <= 0 && p.airT <= 0) {
               item.alive = false;
               p.spinT = 0.9;
               p.boostT = 0;
@@ -349,7 +417,7 @@
             }
             break;
           case "oil":
-            if (dx < 0.2 && p.slideT <= 0 && p.hopT <= 0) {
+            if (dx < 0.2 && p.slideT <= 0 && p.hopT <= 0 && p.airT <= 0) {
               p.slideT = 0.8;
               GameAudio.oilSlip();
             }
@@ -471,10 +539,16 @@
       if (lapsOf(c) > oldL) c.laps = lapsOf(c);
       return;
     }
+    if (c.airT > 0) c.airT -= dt;
     for (const item of seg.items) {
-      if (item.dropped && item.type === "oil" && Math.abs(item.x - c.x) < 0.22) {
+      if (item.dropped && item.type === "oil" && Math.abs(item.x - c.x) < 0.22 && c.airT <= 0) {
         c.spinT = 0.9;
         return;
+      }
+      if (item.type === "ramp" && Math.abs(item.x - c.x) < 0.36 && c.airT <= 0 &&
+          c.speed > MAX_SPEED * 0.25) {
+        c.airTotal = 0.5;
+        c.airT = 0.5;
       }
     }
 
@@ -910,8 +984,9 @@
         R.quadP(p2.x - p2.w, p2.y, p2.x + p2.w, p2.y,
                 p1.x + p1.w, p1.y, p1.x - p1.w, p1.y, road);
 
-        // center lane dashes
-        if (alt) {
+        // center lane dashes — skipped for sub-pixel far segments, where
+        // dozens of translucent draws stack into a white band at the horizon
+        if (alt && p1.y - p2.y > 1.5) {
           const lane = mix(pal.lane, pal.skyBot, fog);
           R.quadP(p2.x - p2.w * 0.012, p2.y, p2.x + p2.w * 0.012, p2.y,
                   p1.x + p1.w * 0.015, p1.y, p1.x - p1.w * 0.015, p1.y,
@@ -931,16 +1006,31 @@
           }
         }
 
-        // boost pad chevrons (flat on the road)
+        // boost pad chevrons and jump ramps (drawn on the road surface);
+        // translucent, so skip sub-pixel far segments to avoid stacking
         for (const item of seg.items) {
-          if (item.type !== "pad") continue;
-          const pulse = 0.55 + 0.45 * Math.sin(raceT * 6);
-          const cx2 = p2.x + p2.w * item.x, cx1 = p1.x + p1.w * item.x;
-          R.quadP(cx2 - p2.w * 0.3, p2.y, cx2 + p2.w * 0.3, p2.y,
-                  cx1 + p1.w * 0.3, p1.y, cx1 - p1.w * 0.3, p1.y,
-                  [pal.glow[0] * pulse, pal.glow[1] * pulse, pal.glow[2] * pulse, 0.75]);
-          R.tri(cx1 - p1.w * 0.18, p1.y, cx1 + p1.w * 0.18, p1.y,
-                cx2, p2.y, [1, 1, 1, 0.5 * pulse]);
+          if (p1.y - p2.y <= 1.5) break;
+          if (item.type === "pad") {
+            const pulse = 0.55 + 0.45 * Math.sin(raceT * 6);
+            const cx2 = p2.x + p2.w * item.x, cx1 = p1.x + p1.w * item.x;
+            R.quadP(cx2 - p2.w * 0.3, p2.y, cx2 + p2.w * 0.3, p2.y,
+                    cx1 + p1.w * 0.3, p1.y, cx1 - p1.w * 0.3, p1.y,
+                    [pal.glow[0] * pulse, pal.glow[1] * pulse, pal.glow[2] * pulse, 0.75]);
+            R.tri(cx1 - p1.w * 0.18, p1.y, cx1 + p1.w * 0.18, p1.y,
+                  cx2, p2.y, [1, 1, 1, 0.5 * pulse]);
+          } else if (item.type === "ramp") {
+            // wedge with a raised lip at the far edge
+            const cx2 = p2.x + p2.w * item.x, cx1 = p1.x + p1.w * item.x;
+            const lip = p2.w * 0.14;
+            R.quadP(cx2 - p2.w * 0.32, p2.y - lip, cx2 + p2.w * 0.32, p2.y - lip,
+                    cx1 + p1.w * 0.36, p1.y, cx1 - p1.w * 0.36, p1.y,
+                    [1.0, 0.62, 0.15, 0.95]);
+            R.quad(cx2 - p2.w * 0.32, p2.y - lip, p2.w * 0.64, lip * 0.35, [1, 1, 1, 0.85]);
+            // stripes up the face
+            R.quadP(cx2 - p2.w * 0.02, p2.y - lip, cx2 + p2.w * 0.02, p2.y - lip,
+                    cx1 + p1.w * 0.03, p1.y, cx1 - p1.w * 0.03, p1.y,
+                    [1, 1, 1, 0.55]);
+          }
         }
 
         clipY = Math.min(clipY, yTop);
@@ -986,7 +1076,12 @@
         const y = lerp(p1.y, p2.y, pct);
         const kw = lerp(p1.w, p2.w, pct) * 0.28;
         const spin = c.spinT > 0 ? Math.sin((1.3 - c.spinT) * 12) * 2 : 0;
-        Sprites.kart(x, y, kw, c.color, { steer: spin, time: raceT });
+        let lift = 0;
+        if (c.airT > 0) {
+          lift = Math.sin((1 - c.airT / c.airTotal) * Math.PI) * kw * 0.9;
+          R.circle(x, y, kw * 0.4 * (1 - lift / (kw * 2)), [0, 0, 0, 0.3]);
+        }
+        Sprites.kart(x, y - lift, kw, c.color, { steer: spin, time: raceT });
       }
       for (const m of missiles) {
         let rel = m.z - camZ;
@@ -1007,7 +1102,12 @@
       const py = h * 0.92 + Math.sin(raceT * 22) * (player.speed / MAX_SPEED) * 1.6
                + (Math.abs(player.x) > 1.04 ? Math.sin(raceT * 50) * 2.5 : 0);
       const spin = player.spinT > 0 ? Math.sin((0.9 - player.spinT) * 14) : 0;
-      Sprites.kart(px, py, kw, player.color, {
+      let lift = 0;
+      if (player.airT > 0) {
+        lift = Math.sin((1 - player.airT / player.airTotal) * Math.PI) * kw * 1.0;
+        R.circle(px, py, kw * 0.45 * (1 - lift / (kw * 2.2)), [0, 0, 0, 0.35]);
+      }
+      Sprites.kart(px, py - lift, kw, player.color, {
         steer: player.steerVis + spin * 2,
         hop: Math.max(0, player.hopT) * 3,
         drift: player.driftVis,
@@ -1038,6 +1138,7 @@
     // sky uses last frame's curve total for parallax — fine at 60fps
     drawSky(pal, lastCurve, camX);
     lastCurve = renderWorld(camZ, camX, showPlayer);
+    if (state === "race" || state === "count") drawMinimap();
     R.flush();
   }
 

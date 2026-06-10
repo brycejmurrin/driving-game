@@ -29,13 +29,15 @@ const Sprites = (function () {
 
     const lean = steer * 0.14;
     // drifting: the rear swings OUT, opposite the turn (tilt right ->
-    // nose right, tail kicks left), top leans into the turn
+    // nose right, tail kicks left), top leans into the turn. Kept small —
+    // the parts translate independently, so big offsets read as the kart
+    // falling apart rather than yawing.
     const kick = -drift;
-    const rear = kick * w * 0.20;      // applied to tires / bumper / glow
-    const nose = -kick * w * 0.12;     // applied to cockpit / spoiler / helmet
+    const rear = kick * w * 0.08;      // applied to tires / bumper / glow
+    const nose = -kick * w * 0.04;     // applied to cockpit / spoiler / helmet
     const by = y;            // bottom (wheel contact)
     const skew = lean * w * 0.35;
-    const topShift = nose - rear * 0.8;
+    const topShift = nose - rear * 0.5;
 
     // underglow
     R.circle(x + rear * 0.6, by - h * 0.04, w * 0.5, shade(color, 1.2, 0.13), 14);
@@ -43,8 +45,8 @@ const Sprites = (function () {
     // rear tires
     const wy = by - h * 0.22;
     const ww = w * 0.17, wh = h * 0.44;
-    R.rotQuad(x - w * 0.42 + skew * 0.25 + rear, wy, ww, wh, lean * 0.4 + kick * 0.3, [0.04, 0.04, 0.07, 1]);
-    R.rotQuad(x + w * 0.42 + skew * 0.25 + rear, wy, ww, wh, lean * 0.4 + kick * 0.3, [0.04, 0.04, 0.07, 1]);
+    R.rotQuad(x - w * 0.42 + skew * 0.25 + rear, wy, ww, wh, lean * 0.4 + kick * 0.12, [0.04, 0.04, 0.07, 1]);
+    R.rotQuad(x + w * 0.42 + skew * 0.25 + rear, wy, ww, wh, lean * 0.4 + kick * 0.12, [0.04, 0.04, 0.07, 1]);
     R.circle(x - w * 0.42 + skew * 0.25 + rear, wy, ww * 0.2, shade(color, 1.4), 8);
     R.circle(x + w * 0.42 + skew * 0.25 + rear, wy, ww * 0.2, shade(color, 1.4), 8);
 

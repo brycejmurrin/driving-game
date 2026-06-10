@@ -331,6 +331,16 @@ const GameAudio = (function () {
     blip(300, "sine", 0.2, 0.02, 0.25, 90);
   }
 
+  function jump() {
+    blip(330, "square", 0.22, 0.02, 0.3, 740);
+    noise(0.08, 0.15, 3000);
+  }
+
+  function land() {
+    noise(0.2, 0.12, 700);
+    blip(140, "sine", 0.18, 0.005, 0.1, 70);
+  }
+
   /* ---------------- music ---------------- */
 
   /*
@@ -514,6 +524,8 @@ const GameAudio = (function () {
     fireMissile,
     explosion,
     dropOil,
+    jump,
+    land,
     startMusic,
     stopMusic,
   };

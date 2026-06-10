@@ -78,6 +78,13 @@ const Tracks = (function () {
     put(segs, i, "box", 0.5);
   }
 
+  function ramp(segs, i, x) { put(segs, i, "ramp", x); }
+
+  // chain of boost pads down the road
+  function padChain(segs, i, x, n) {
+    for (let k = 0; k < (n || 3); k++) pad(segs, i + k * 3, x);
+  }
+
   function autoScenery(segs) {
     for (let i = 0; i < segs.length; i++) {
       if (i % 9 === 4) {
@@ -120,6 +127,9 @@ const Tracks = (function () {
     oil(s, 420, 0.2);
     boxRow(s, 60);
     boxRow(s, 450);
+    ramp(s, 130, 0);
+    ramp(s, 560, -0.25);
+    padChain(s, 700, 0.2, 3);
     autoScenery(s);
     return {
       name: "SUNRISE CIRCUIT",
@@ -171,6 +181,9 @@ const Tracks = (function () {
     boxRow(s, 55);
     boxRow(s, 410);
     boxRow(s, 760);
+    ramp(s, 100, 0.3);
+    ramp(s, 500, -0.2);
+    padChain(s, 360, 0, 3);
     autoScenery(s);
     return {
       name: "NEON SPIRAL",
@@ -227,6 +240,10 @@ const Tracks = (function () {
     boxRow(s, 45);
     boxRow(s, 350);
     boxRow(s, 690);
+    ramp(s, 90, -0.2);
+    ramp(s, 410, 0.25);
+    ramp(s, 700, 0);
+    padChain(s, 120, -0.3, 3);
     autoScenery(s);
     return {
       name: "MIDNIGHT GORGE",
@@ -275,6 +292,10 @@ const Tracks = (function () {
     boxRow(s, 50);
     boxRow(s, 390);
     boxRow(s, 720);
+    ramp(s, 160, 0);
+    ramp(s, 450, 0.3);
+    ramp(s, 690, -0.3);
+    padChain(s, 140, 0, 3);
     autoScenery(s);
     return {
       name: "AURORA PASS",
@@ -325,6 +346,9 @@ const Tracks = (function () {
     boxRow(s, 55);
     boxRow(s, 370);
     boxRow(s, 730);
+    ramp(s, 110, 0.2);
+    ramp(s, 640, -0.25);
+    padChain(s, 470, 0, 3);
     autoScenery(s);
     return {
       name: "CRIMSON CANYON",
@@ -375,6 +399,10 @@ const Tracks = (function () {
     boxRow(s, 70);
     boxRow(s, 400);
     boxRow(s, 760);
+    ramp(s, 130, -0.25);
+    ramp(s, 440, 0.25);
+    ramp(s, 770, 0);
+    padChain(s, 60, -0.3, 4);
     autoScenery(s);
     return {
       name: "STARLIGHT BAY",
