@@ -239,7 +239,7 @@
 
   function drawMinimap() {
     if (!mmPts || !player) return;
-    const size = Math.min(R.width * 0.2, 92);
+    const size = Math.min(R.width, R.height) * 0.22;
     const mx = 12, my = 58;
     const g = track.palette.glow;
     for (let i = 0; i < mmPts.length; i += 3) {
@@ -1098,7 +1098,12 @@
 
     // player kart, fixed near the bottom of the screen
     if (showPlayer && player) {
-      const kw = Math.min(w * 0.22, 130);
+      // Sized by the same projection as the AI karts (the camera trails
+      // the player by 600 units) so your kart and a rival alongside
+      // render the same size. Caps are proportional — absolute pixel
+      // caps made the kart change size relative to the world when the
+      // page was zoomed.
+      const kw = Math.min(CAM_DEPTH / 600 * ROAD_W * (w / 2) * 0.28, h * 0.42);
       const px = w / 2 + player.steerVis * w * 0.04;
       const py = h * 0.92 + Math.sin(raceT * 22) * (player.speed / MAX_SPEED) * 1.6
                + (Math.abs(player.x) > 1.04 ? Math.sin(raceT * 50) * 2.5 : 0);
@@ -1162,6 +1167,12 @@
   window.addEventListener("orientationchange", function () {
     setTimeout(function () { R.resize(); }, 250);
   });
+  // iOS ignores user-scalable=no for pinch zoom; block the gesture so
+  // zooming can't rescale the canvas mid-race
+  ["gesturestart", "gesturechange", "gestureend"].forEach(function (t) {
+    document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false });
+  });
+  document.addEventListener("dblclick", function (e) { e.preventDefault(); });
   document.addEventListener("visibilitychange", function () {
     if (document.hidden && (state === "race" || state === "count") && !paused) {
       setPaused(true);
