@@ -21,7 +21,7 @@ const GameAudio = (function () {
 
   function init() {
     if (ctx) {
-      if (ctx.state === "suspended") ctx.resume();
+      resumeIfNeeded();
       return;
     }
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -30,6 +30,43 @@ const GameAudio = (function () {
     master = ctx.createGain();
     master.gain.value = muted ? 0 : 0.8;
     master.connect(ctx.destination);
+
+    // A fresh context often starts suspended even inside a tap (iOS) —
+    // resume it and play one silent sample, the canonical unlock.
+    resumeIfNeeded();
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+
+    // iOS suspends the context on lock/app-switch and never resumes it
+    // by itself; recover on the next gesture or on returning to the tab.
+    window.addEventListener("touchend", resumeIfNeeded, true);
+    window.addEventListener("pointerdown", resumeIfNeeded, true);
+    window.addEventListener("keydown", resumeIfNeeded, true);
+    document.addEventListener("visibilitychange", onVisibility);
+  }
+
+  function resumeIfNeeded() {
+    if (ctx && ctx.state !== "running") ctx.resume();
+  }
+
+  let resumeMusic = false;
+  let resumeEngine = false;
+
+  function onVisibility() {
+    if (document.hidden) {
+      resumeMusic = musicOn;
+      resumeEngine = engineOn;
+      if (musicOn) stopMusic();
+      if (engineOn) stopEngine();
+    } else {
+      resumeIfNeeded();
+      if (resumeMusic) startMusic();   // restarts cleanly re-synced to the clock
+      if (resumeEngine) startEngine();
+      resumeMusic = resumeEngine = false;
+    }
   }
 
   function setMuted(m) {

@@ -1009,6 +1009,11 @@
   window.addEventListener("orientationchange", function () {
     setTimeout(function () { R.resize(); }, 250);
   });
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden && (state === "race" || state === "count") && !paused) {
+      setPaused(true);
+    }
+  });
 
   toMenu();
   requestAnimationFrame(frame);
