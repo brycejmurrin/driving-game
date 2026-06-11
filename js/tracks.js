@@ -96,7 +96,20 @@ const Tracks = (function () {
     segs[2].scenery.push({ type: "startArch", x: 0 });
   }
 
-  /* ------------- the three circuits ------------- */
+  // Themed scenery: flank the road with `type` sprites instead of pylons.
+  // `every` controls density; `off` how far off the road they sit.
+  function themedScenery(segs, type, every, off) {
+    for (let i = 0; i < segs.length; i++) {
+      if (i % every === Math.floor(every / 2)) {
+        segs[i].scenery.push({ type: type, x: -off, seed: i });
+        segs[i].scenery.push({ type: type, x: off, seed: i * 7 + 3 });
+      }
+      if (i % 120 === 60) segs[i].scenery.push({ type: "arch", x: 0 });
+    }
+    segs[2].scenery.push({ type: "startArch", x: 0 });
+  }
+
+  /* ------------- the circuits ------------- */
 
   function sunriseCircuit() {
     const s = [];
@@ -420,14 +433,248 @@ const Tracks = (function () {
     };
   }
 
+  /*
+   * PALM ROYALE — tropical beach resort at sunset. Long, flowing
+   * sweepers you can take flat out; palms line the whole lap.
+   * The easiest circuit: wide rhythm, few hazards.
+   */
+  function palmRoyale() {
+    const s = [];
+    straight(s, 90);
+    curve(s, 70, 2);
+    straight(s, 50, -1);
+    curve(s, 80, -2.5, 1);
+    straight(s, 60, 1.5);
+    curve(s, 50, 3, -1.5);
+    straight(s, 100);            // beach straight
+    curve(s, 60, -3);
+    curve(s, 60, 2, 1);
+    straight(s, 40, -1);
+    closeLoop(s, 70);
+
+    coinRow(s, 100, 6, 0);
+    coinArc(s, 200, 7, -0.5, 0.5);
+    coinRow(s, 380, 6, -0.35);
+    coinArc(s, 520, 7, 0.45, -0.45);
+    coinRow(s, 700, 6, 0.3);
+    pad(s, 150, 0.3);
+    padChain(s, 450, 0, 4);      // pad chain down the beach straight
+    pad(s, 760, -0.3);
+    cone(s, 280, 0.4);
+    cone(s, 282, -0.45);
+    cone(s, 660, 0.1);
+    oil(s, 580, -0.2);
+    boxRow(s, 60);
+    boxRow(s, 420);
+    boxRow(s, 740);
+    ramp(s, 250, 0);
+    ramp(s, 490, 0.25);
+    themedScenery(s, "palm", 7, 1.5);
+    return {
+      name: "PALM ROYALE",
+      laps: 3,
+      segs: s,
+      palette: {
+        skyTop: [0.02, 0.04, 0.10], skyBot: [0.80, 0.42, 0.16],
+        sun: [1.0, 0.78, 0.30], sunLo: [1.0, 0.35, 0.30],
+        groundA: [0.07, 0.05, 0.05], groundB: [0.09, 0.07, 0.06],
+        roadA: [0.12, 0.12, 0.18], roadB: [0.10, 0.10, 0.15],
+        rumbleA: [0.10, 0.90, 0.78], rumbleB: [1.0, 0.65, 0.25],
+        lane: [1.0, 0.95, 0.85],
+        glow: [0.15, 0.95, 0.80],
+      },
+    };
+  }
+
+  /*
+   * SOLAR FLARE — desert speedway under a giant golden sun. Massive
+   * straights and flat-out sweepers; the fastest average speed in the
+   * game. Back straight has a triple ramp row.
+   */
+  function solarFlare() {
+    const s = [];
+    straight(s, 120);            // launch straight
+    curve(s, 90, 2.5, -2);
+    straight(s, 80, 1);
+    curve(s, 60, -3);
+    straight(s, 100, -1);        // back straight — ramp row
+    curve(s, 70, 3.5, 2);
+    straight(s, 50);
+    curve(s, 80, -2, -2);
+    closeLoop(s, 80);
+
+    coinRow(s, 60, 8, 0);
+    coinArc(s, 230, 7, -0.5, 0.5);
+    coinRow(s, 420, 7, 0.35);
+    coinArc(s, 560, 6, 0.45, -0.45);
+    coinRow(s, 720, 6, -0.3);
+    padChain(s, 40, -0.35, 4);
+    padChain(s, 400, 0.35, 4);
+    pad(s, 650, 0);
+    cone(s, 330, -0.4);
+    cone(s, 332, 0.3);
+    cone(s, 690, -0.15);
+    oil(s, 510, 0.25);
+    boxRow(s, 90);
+    boxRow(s, 470);
+    boxRow(s, 750);
+    ramp(s, 430, -0.3);          // triple ramps down the back straight
+    ramp(s, 436, 0);
+    ramp(s, 442, 0.3);
+    ramp(s, 150, 0);
+    themedScenery(s, "cactus", 8, 1.55);
+    return {
+      name: "SOLAR FLARE",
+      laps: 3,
+      segs: s,
+      palette: {
+        skyTop: [0.07, 0.02, 0.01], skyBot: [0.82, 0.52, 0.10],
+        sun: [1.0, 0.90, 0.45], sunLo: [1.0, 0.55, 0.15],
+        groundA: [0.10, 0.05, 0.02], groundB: [0.13, 0.07, 0.03],
+        roadA: [0.15, 0.12, 0.10], roadB: [0.13, 0.10, 0.08],
+        rumbleA: [1.0, 0.82, 0.20], rumbleB: [0.30, 0.10, 0.05],
+        lane: [1.0, 0.95, 0.80],
+        glow: [1.0, 0.80, 0.25],
+      },
+    };
+  }
+
+  /*
+   * CHROME CITY — night street circuit between glowing towers.
+   * Tight and technical: chicanes, a hairpin, 90-degree blocks.
+   * Walls of skyscrapers with lit windows line the route.
+   */
+  function chromeCity() {
+    const s = [];
+    straight(s, 60);
+    curve(s, 30, 4);
+    straight(s, 20);
+    curve(s, 30, -4);
+    straight(s, 30, 1);
+    curve(s, 25, 5);             // chicane in
+    curve(s, 25, -5);            // chicane out
+    straight(s, 50, -1);
+    curve(s, 40, 4.5, 1);
+    straight(s, 30);
+    curve(s, 30, -5.5);          // hairpin
+    straight(s, 40, -1);
+    curve(s, 30, 3.5);
+    curve(s, 30, -3.5);
+    straight(s, 60, 1);
+    curve(s, 50, 5, -1);
+    closeLoop(s, 50);
+
+    coinRow(s, 70, 5, 0);
+    coinArc(s, 170, 6, -0.45, 0.45);
+    coinRow(s, 300, 5, -0.3);
+    coinArc(s, 430, 6, 0.45, -0.45);
+    coinRow(s, 580, 5, 0.3);
+    pad(s, 130, 0);
+    pad(s, 380, -0.3);
+    pad(s, 620, 0.3);
+    cone(s, 110, 0.35);          // chicane clutter
+    cone(s, 112, -0.45);
+    cone(s, 240, 0.2);
+    cone(s, 242, -0.35);
+    cone(s, 460, 0.45);
+    cone(s, 462, -0.1);
+    oil(s, 210, -0.25);          // corner-exit oil
+    oil(s, 350, 0.3);
+    oil(s, 540, -0.2);
+    boxRow(s, 50);
+    boxRow(s, 330);
+    boxRow(s, 600);
+    ramp(s, 280, 0);
+    themedScenery(s, "building", 5, 1.85);
+    return {
+      name: "CHROME CITY",
+      laps: 3,
+      segs: s,
+      palette: {
+        skyTop: [0.01, 0.01, 0.04], skyBot: [0.12, 0.13, 0.22],
+        sun: [0.92, 0.94, 1.0], sunLo: [0.50, 0.55, 0.70],
+        groundA: [0.03, 0.03, 0.05], groundB: [0.04, 0.04, 0.07],
+        roadA: [0.12, 0.12, 0.15], roadB: [0.10, 0.10, 0.13],
+        rumbleA: [1.0, 0.88, 0.25], rumbleB: [0.20, 0.22, 0.30],
+        lane: [1.0, 0.95, 0.70],
+        glow: [1.0, 0.88, 0.30],
+      },
+    };
+  }
+
+  /*
+   * CRYSTAL CAVERN — a violet underground of glowing shards. The
+   * biggest elevation swings in the game: two long climbs with blind
+   * crests dropping into descending spirals.
+   */
+  function crystalCavern() {
+    const s = [];
+    straight(s, 50);
+    curve(s, 50, 3, 4);          // big climb
+    curve(s, 40, -4, 2);
+    straight(s, 30, -3);         // blind crest drop
+    curve(s, 60, 5, -3);         // descending spiral
+    straight(s, 40);
+    curve(s, 40, -3.5, 3);
+    curve(s, 40, 3.5, -2);
+    straight(s, 60, 4);          // second climb
+    curve(s, 70, -5, -4);        // long downhill hairpin
+    straight(s, 30);
+    curve(s, 40, 2.5, 1);
+    closeLoop(s, 60);
+
+    coinArc(s, 70, 6, -0.5, 0.5);
+    coinRow(s, 190, 5, 0.3);
+    coinArc(s, 330, 7, 0.5, -0.5);
+    coinRow(s, 480, 5, -0.35);
+    coinArc(s, 600, 6, -0.4, 0.4);
+    pad(s, 140, -0.3);
+    pad(s, 410, 0.3);
+    pad(s, 640, 0);
+    cone(s, 220, 0.4);
+    cone(s, 222, -0.3);
+    cone(s, 370, -0.45);
+    cone(s, 372, 0.15);
+    cone(s, 560, 0.3);
+    oil(s, 260, 0.2);
+    oil(s, 450, -0.25);
+    oil(s, 620, 0.1);
+    boxRow(s, 55);
+    boxRow(s, 350);
+    boxRow(s, 660);
+    ramp(s, 120, 0.25);          // ramp at the crest = big air
+    ramp(s, 430, -0.2);
+    padChain(s, 640, 0, 3);
+    themedScenery(s, "crystal", 6, 1.45);
+    return {
+      name: "CRYSTAL CAVERN",
+      laps: 3,
+      segs: s,
+      palette: {
+        skyTop: [0.02, 0.01, 0.06], skyBot: [0.22, 0.12, 0.45],
+        sun: [0.75, 0.60, 1.0], sunLo: [0.40, 0.70, 1.0],
+        groundA: [0.04, 0.03, 0.09], groundB: [0.05, 0.04, 0.12],
+        roadA: [0.10, 0.09, 0.17], roadB: [0.08, 0.07, 0.14],
+        rumbleA: [0.62, 0.40, 1.0], rumbleB: [0.35, 0.85, 1.0],
+        lane: [0.92, 0.88, 1.0],
+        glow: [0.62, 0.45, 1.0],
+      },
+    };
+  }
+
   // Order is the GP running order: difficulty ramps up.
-  const list = [sunriseCircuit, neonSpiral, auroraPass, starlightBay, crimsonCanyon, midnightGorge];
+  const list = [sunriseCircuit, palmRoyale, neonSpiral, auroraPass, solarFlare,
+                starlightBay, crimsonCanyon, chromeCity, crystalCavern, midnightGorge];
   const meta = [
     { name: "SUNRISE CIRCUIT", color: "#ff4d8c" },
+    { name: "PALM ROYALE", color: "#2ee6c0" },
     { name: "NEON SPIRAL", color: "#8c4dff" },
     { name: "AURORA PASS", color: "#4dff99" },
+    { name: "SOLAR FLARE", color: "#ffd24d" },
     { name: "STARLIGHT BAY", color: "#7a99ff" },
     { name: "CRIMSON CANYON", color: "#ff8033" },
+    { name: "CHROME CITY", color: "#f2f24d" },
+    { name: "CRYSTAL CAVERN", color: "#b366ff" },
     { name: "MIDNIGHT GORGE", color: "#ff4dcc" },
   ];
 

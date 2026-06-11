@@ -196,6 +196,76 @@ const Sprites = (function () {
     }
   }
 
+  /* ---- themed trackside scenery ---- */
+
+  // Palm tree: leaning trunk with a fan of dark fronds, glow at the crown.
+  function palm(x, y, w, glowColor) {
+    const h = w * 4.2;
+    const lean = w * 0.5;
+    for (let i = 0; i < 5; i++) {
+      const p = i / 5;
+      const tx = x + lean * p * p;
+      R.quad(tx - w * 0.10, y - h * (p + 0.22), w * 0.20 * (1 - p * 0.35), h * 0.24,
+             [0.13, 0.08, 0.12, 1]);
+    }
+    const cx = x + lean, cy = y - h;
+    for (let i = 0; i < 7; i++) {
+      const a = Math.PI * (0.08 + 0.84 * i / 6);
+      const fx = Math.cos(a) * w * 1.5;
+      const fy = -Math.sin(a) * w * 0.9 - w * 0.1;
+      R.tri(cx, cy, cx + fx, cy + fy + w * 0.35,
+            cx + fx * 0.5, cy + fy * 0.5 - w * 0.18, [0.04, 0.28, 0.22, 1]);
+    }
+    R.circle(cx, cy, w * 0.15, [glowColor[0], glowColor[1], glowColor[2], 0.8], 8);
+  }
+
+  // City tower: dark slab, glowing roof edge, deterministic lit windows.
+  function building(x, y, w, glowColor, seed) {
+    const h = w * (2.6 + (seed % 5) * 0.55);
+    R.quad(x - w * 0.5, y - h, w, h, [0.04, 0.05, 0.09, 1]);
+    R.quad(x - w * 0.5, y - h, w, w * 0.06,
+           [glowColor[0], glowColor[1], glowColor[2], 0.6]);
+    if (w > 14) {                       // windows are sub-pixel beyond this
+      const rows = Math.min(12, Math.floor(h / (w * 0.3)));
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < 4; c++) {
+          if ((seed * 73 + r * 31 + c * 17) % 9 > 3) continue;
+          R.quad(x - w * 0.38 + c * w * 0.22, y - h + w * 0.18 + r * w * 0.3,
+                 w * 0.12, w * 0.16, [0.95, 0.85, 0.5, 0.85]);
+        }
+      }
+    }
+  }
+
+  // Cluster of glowing crystal shards.
+  function crystal(x, y, w, glowColor) {
+    const g = glowColor;
+    R.circle(x, y - w * 0.5, w * 0.9, [g[0], g[1], g[2], 0.12], 10);
+    R.tri(x - w * 0.55, y, x - w * 0.05, y, x - w * 0.30, y - w * 1.5,
+          [g[0] * 0.7, g[1] * 0.7, g[2] * 0.9, 0.85]);
+    R.tri(x - w * 0.15, y, x + w * 0.40, y, x + w * 0.12, y - w * 2.3,
+          [g[0], g[1], g[2], 0.9]);
+    R.tri(x + w * 0.18, y, x + w * 0.65, y, x + w * 0.42, y - w * 1.1,
+          [g[0] * 0.8, g[1] * 0.8, g[2], 0.8]);
+    R.tri(x + w * 0.02, y - w * 0.9, x + w * 0.10, y - w * 0.9,
+          x + w * 0.12, y - w * 2.3, [1, 1, 1, 0.5]);
+  }
+
+  // Saguaro cactus silhouette with a glow tip.
+  function cactus(x, y, w, glowColor) {
+    const h = w * 2.8;
+    const c = [0.10, 0.30, 0.16, 1];
+    R.quad(x - w * 0.16, y - h, w * 0.32, h, c);
+    R.circle(x, y - h, w * 0.16, c, 8);
+    R.quad(x - w * 0.55, y - h * 0.72, w * 0.18, h * 0.34, c);
+    R.quad(x - w * 0.55, y - h * 0.50, w * 0.42, h * 0.12, c);
+    R.circle(x - w * 0.46, y - h * 0.72, w * 0.09, c, 6);
+    R.quad(x + w * 0.37, y - h * 0.60, w * 0.18, h * 0.40, c);
+    R.quad(x + w * 0.13, y - h * 0.38, w * 0.42, h * 0.12, c);
+    R.circle(x + w * 0.46, y - h * 0.60, w * 0.09, c, 6);
+    R.circle(x, y - h, w * 0.10, [glowColor[0], glowColor[1], glowColor[2], 0.7], 6);
+  }
+
   // Dropped mine: dark sphere with a sparking fuse.
   function bomb(x, y, w, t) {
     const cy = y - w * 0.58;
@@ -210,5 +280,6 @@ const Sprites = (function () {
     R.circle(x, y - w * 1.10, w * 0.07, [1.0, 1.0, 0.6, fl], 5);
   }
 
-  return { kart, cone, oil, coin, pylon, arch, startArch, itemBox, missile, bomb };
+  return { kart, cone, oil, coin, pylon, arch, startArch, itemBox, missile, bomb,
+           palm, building, crystal, cactus };
 })();

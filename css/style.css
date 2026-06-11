@@ -151,6 +151,22 @@ html, body {
   font-size: 16px;
 }
 
+/* 10 circuits: two-column grid below the GP button */
+.circuit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+#trackselect .circuit-grid button {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  padding: 0 4px;
+}
+
 .ts-section {
   display: flex;
   flex-direction: column;

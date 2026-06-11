@@ -752,7 +752,7 @@
   }
 
   function tiltHint() {
-    return "6 circuits · 5 rivals · drift for boosts";
+    return "10 circuits · 5 rivals · drift for boosts";
   }
 
   function showSelect() {
@@ -842,6 +842,8 @@
       pickTracks(Tracks.list.map(function (_, i) { return i; }));
     });
     trackSelect.appendChild(gp);
+    const grid = document.createElement("div");
+    grid.className = "circuit-grid";
     Tracks.meta.forEach(function (m, i) {
       const b = document.createElement("button");
       b.textContent = m.name;
@@ -850,8 +852,9 @@
         e.stopPropagation();
         pickTracks([i]);
       });
-      trackSelect.appendChild(b);
+      grid.appendChild(b);
     });
+    trackSelect.appendChild(grid);
   }
 
   function pickTracks(queue) {
@@ -1256,6 +1259,10 @@
         if (sc.type === "pylon") Sprites.pylon(sx, p1.y, p1.w * 0.1, track.palette.glow);
         else if (sc.type === "arch") Sprites.arch(p1.x, p1.y, p1.w, track.palette.glow);
         else if (sc.type === "startArch") Sprites.startArch(p1.x, p1.y, p1.w);
+        else if (sc.type === "palm") Sprites.palm(sx, p1.y, p1.w * 0.13, track.palette.glow);
+        else if (sc.type === "building") Sprites.building(sx, p1.y, p1.w * 0.42, track.palette.glow, sc.seed || segIdx);
+        else if (sc.type === "crystal") Sprites.crystal(sx, p1.y, p1.w * 0.16, track.palette.glow);
+        else if (sc.type === "cactus") Sprites.cactus(sx, p1.y, p1.w * 0.11, track.palette.glow);
       }
       for (const item of seg.items) {
         if (!item.alive) continue;

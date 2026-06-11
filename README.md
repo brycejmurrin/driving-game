@@ -9,10 +9,13 @@ and [Neon Slice](https://github.com/brycejmurrin/pizza): same engine
 style, this time with an engine.
 
 The track is a classic pseudo-3D segmented road (OutRun style). Race five
-rivals across **six circuits** — pick one from the select screen or run
-the full Grand Prix — grabbing coins, weapon boxes, and boost pads while
-dodging cones and oil slicks. The headline feature: **steer by tilting
-your phone**, using the device gyroscope.
+rivals across **ten circuits** — from flowing beach sweepers lined with
+palm trees, to a tight night street circuit between glowing skyscrapers,
+to an underground cavern of violet crystal — pick one from the select
+screen or run the full Grand Prix. Grab coins, weapon boxes, and boost
+pads while dodging cones and oil slicks. The headline feature: **steer
+by tilting your phone**, using the device gyroscope. Each circuit has
+its own color palette, themed trackside scenery, and chiptune.
 
 ## How to play
 
@@ -30,13 +33,18 @@ your phone**, using the device gyroscope.
   — sparks turn blue when the big boost is ready.
 - **? boxes** hold a random weapon, shown on the fire button:
   🚀 **missile** homes in on the kart ahead and spins it out, ⚡ **boost**
-  is instant speed, 💧 **oil** drops a slick behind you that spins out
-  pursuers. Boxes respawn a few seconds after being taken.
+  is instant speed, 💧 **oil** drops a slick behind you, 🛡️ **shield**
+  blocks the next hit, 💣 **bomb** drops a wide-radius mine with a
+  7-second fuse, ⭐ **star** is 4.5 s of invincibility and boost that
+  spins out anyone you touch. Boxes respawn a few seconds after being
+  taken.
 - **Coins** are 25 points each. **Boost pads** (glowing chevrons) give a
   free boost. **Cones** spin you out; **oil** scrambles your steering —
   a well-timed drift hop clears both.
 - Finish bonus: 1200 / 900 / 650 / 450 / 300 / 200 by place. Score
   accumulates across the Grand Prix; the high score is saved locally.
+- Pick your **kart color** and the AI **difficulty** (EASY / NORMAL /
+  HARD) on the select screen — both are remembered between visits.
 
 ## Tilt controls, technically
 
