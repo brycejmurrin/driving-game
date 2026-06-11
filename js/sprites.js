@@ -196,5 +196,19 @@ const Sprites = (function () {
     }
   }
 
-  return { kart, cone, oil, coin, pylon, arch, startArch, itemBox, missile };
+  // Dropped mine: dark sphere with a sparking fuse.
+  function bomb(x, y, w, t) {
+    const cy = y - w * 0.58;
+    R.circle(x, cy, w * 0.58, [0.10, 0.10, 0.14, 1], 10);
+    R.circle(x, cy, w * 0.43, [0.20, 0.20, 0.26, 1], 10);
+    R.circle(x - w * 0.14, cy - w * 0.15, w * 0.15, [0.45, 0.45, 0.55, 0.45], 6);
+    // fuse
+    R.quad(x - w * 0.04, y - w * 1.08, w * 0.08, w * 0.52, [0.65, 0.50, 0.18, 1]);
+    // flickering spark
+    const fl = (Math.sin((t || 0) * 28) * 0.4 + 0.7);
+    R.circle(x, y - w * 1.10, w * 0.13, [1.0, 0.85, 0.2, fl], 6);
+    R.circle(x, y - w * 1.10, w * 0.07, [1.0, 1.0, 0.6, fl], 5);
+  }
+
+  return { kart, cone, oil, coin, pylon, arch, startArch, itemBox, missile, bomb };
 })();

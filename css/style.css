@@ -148,6 +148,89 @@ html, body {
   font-size: 16px;
 }
 
+.ts-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 2px;
+}
+
+.ts-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: #33e6f2;
+}
+
+.color-swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.color-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(191, 234, 255, 0.3);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s, border-color 0.12s;
+}
+
+.color-swatch.active {
+  border: 3px solid #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.55);
+  transform: scale(1.18);
+}
+
+.color-swatch:active {
+  transform: scale(0.9);
+}
+
+.diff-row {
+  display: flex;
+  gap: 8px;
+}
+
+.diff-btn {
+  min-width: 78px;
+  min-height: 36px;
+  background: rgba(10, 16, 34, 0.7);
+  border: 1px solid rgba(51, 230, 242, 0.28);
+  border-radius: 8px;
+  color: rgba(191, 234, 255, 0.5);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.diff-btn:active {
+  transform: scale(0.96);
+}
+
+.diff-easy.active {
+  border-color: #4dff91;
+  color: #4dff91;
+  background: rgba(77, 255, 145, 0.12);
+}
+
+.diff-normal.active {
+  border-color: #33e6f2;
+  color: #33e6f2;
+  background: rgba(51, 230, 242, 0.12);
+}
+
+.diff-hard.active {
+  border-color: #ff6b35;
+  color: #ff6b35;
+  background: rgba(255, 107, 53, 0.12);
+}
+
 #firebtn[hidden],
 #driftbtn[hidden] {
   display: none;

@@ -23,13 +23,28 @@
   const CENTRIF = 0.235;          // centrifugal pull per unit curve
 
   const KART_COLORS = [
-    [0.20, 0.95, 1.00],           // player — cyan
+    [0.20, 0.95, 1.00],           // player default — cyan (overridden by playerColor)
     [1.00, 0.30, 0.55],
     [0.65, 0.40, 1.00],
     [1.00, 0.75, 0.20],
     [0.30, 1.00, 0.55],
     [1.00, 0.45, 0.15],
   ];
+  const PLAYER_COLORS = [
+    [0.20, 0.95, 1.00],  // cyan
+    [1.00, 0.22, 0.50],  // hot pink
+    [0.60, 0.28, 1.00],  // violet
+    [1.00, 0.75, 0.10],  // gold
+    [0.20, 0.95, 0.45],  // lime
+    [1.00, 0.40, 0.10],  // orange
+    [1.00, 0.15, 0.15],  // red
+    [0.88, 0.88, 0.96],  // silver
+  ];
+  const DIFF = {
+    easy:   { sm: 0.72, bs: 0.18 },  // skill ×0.72, strong rubber-band
+    normal: { sm: 1.00, bs: 0.12 },  // default
+    hard:   { sm: 1.15, bs: 0.03 },  // skill ×1.15, almost no rubber-band
+  };
   const AI_NAMES = ["VEX", "NOVA", "JINX", "RAZOR", "ECHO"];
   const POS_BONUS = [1200, 900, 650, 450, 300, 200];
   const POS_LABEL = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
@@ -98,6 +113,9 @@
   let score = 0;                  // GP-total score
   let raceCoins = 0;
   let hiscore = Number(localStorage.getItem("neondrift.hiscore") || 0);
+  let playerColor = JSON.parse(localStorage.getItem("neondrift.color") || "null") || PLAYER_COLORS[0];
+  let difficulty = localStorage.getItem("neondrift.difficulty") || "normal";
+  let activeBombs = [];           // live bomb items for timer-based expiry
   let horizonY = 0;               // previous-frame horizon, for the sky
 
   let announceTimer = null;
@@ -155,7 +173,7 @@
     return {
       isPlayer: isPlayer,
       name: isPlayer ? "YOU" : AI_NAMES[idx - 1],
-      color: KART_COLORS[idx],
+      color: isPlayer ? playerColor : KART_COLORS[idx],
       z0: 400 + gridRow * 320,
       dist: 0,                    // distance traveled since start
       x: gridCol,                 // -1..1 in road half-widths
@@ -164,14 +182,15 @@
       rank: idx,
       finished: false,
       finishOrder: -1,
-      // AI personality
-      skill: 0.78 + idx * 0.035 + Math.random() * 0.05,
+      // AI personality — skill scaled by difficulty
+      skill: (0.78 + idx * 0.035 + Math.random() * 0.05) * DIFF[difficulty].sm,
       lane: gridCol * 0.8,
       // effect timers (spinT is shared: missiles spin AI out too)
       boostT: 0, spinT: 0, slideT: 0, hopT: 0,
       driftCharge: 0, driftDir: 0, wasDrifting: false,
       steerVis: 0, driftVis: 0,
       airT: 0, airTotal: 1,            // ramp jumps
+      shield: false, starT: 0,         // new power-up states
       weapon: null,
     };
   }
@@ -185,6 +204,7 @@
     raceT = 0;
     finishT = 0;
     missiles = [];
+    activeBombs = [];
     buildMinimap();
 
     // grid: player starts at the back, AI staggered ahead
@@ -350,6 +370,17 @@
     if (p.boostT > 0) p.boostT -= dt;
     if (p.spinT > 0) p.spinT -= dt;
     if (p.slideT > 0) p.slideT -= dt;
+    if (p.starT > 0) {
+      p.starT -= dt;
+      p.boostT = Math.max(p.boostT, 0.12);
+      for (const c of cars) {
+        if (c.spinT > 0) continue;
+        let rdz = zOf(c) - zOf(p);
+        if (rdz > trackLen / 2) rdz -= trackLen;
+        if (rdz < -trackLen / 2) rdz += trackLen;
+        if (Math.abs(rdz) < SEG_LEN * 2 && Math.abs(c.x - p.x) < 0.5) c.spinT = 0.8;
+      }
+    }
 
     // lap / finish
     const lapsNow = lapsOf(p);
@@ -420,6 +451,8 @@
             break;
           case "cone":
             if (dx < 0.18 && p.spinT <= 0 && p.hopT <= 0 && p.airT <= 0) {
+              if (p.starT > 0) break;
+              if (p.shield) { p.shield = false; announce("BLOCKED!", 700); break; }
               item.alive = false;
               p.spinT = 0.9;
               p.boostT = 0;
@@ -429,15 +462,34 @@
             break;
           case "oil":
             if (dx < 0.2 && p.slideT <= 0 && p.hopT <= 0 && p.airT <= 0) {
+              if (p.starT > 0) break;
+              if (p.shield) { p.shield = false; announce("BLOCKED!", 700); break; }
               p.slideT = 0.8;
               GameAudio.oilSlip();
+            }
+            break;
+          case "bomb":
+            if (item.expiresAt && raceT >= item.expiresAt) { item.alive = false; break; }
+            if (dx < 0.35 && p.spinT <= 0 && p.hopT <= 0 && p.airT <= 0) {
+              item.alive = false;
+              if (p.starT > 0) break;
+              if (p.shield) { p.shield = false; announce("BLOCKED!", 700); break; }
+              p.spinT = 1.2;
+              p.boostT = 0;
+              p.driftCharge = 0;
+              GameAudio.hitCone();
             }
             break;
           case "box":
             if (dx < 0.28 && raceT > (item.deadUntil || 0) && !p.weapon) {
               item.deadUntil = raceT + 4;     // box respawns after 4s
               const roll = Math.random();
-              p.weapon = roll < 0.45 ? "missile" : roll < 0.75 ? "boost" : "oil";
+              p.weapon = roll < 0.28 ? "missile"
+                       : roll < 0.48 ? "boost"
+                       : roll < 0.63 ? "oil"
+                       : roll < 0.76 ? "shield"
+                       : roll < 0.89 ? "bomb"
+                       : "star";
               updateFireBtn();
               GameAudio.itemGet();
             }
@@ -449,7 +501,7 @@
 
   /* ---------------- weapons ---------------- */
 
-  const WEAPON_ICON = { missile: "\u{1F680}", boost: "⚡", oil: "\u{1F4A7}" };
+  const WEAPON_ICON = { missile: "🚀", boost: "⚡", oil: "💧", shield: "🛡️", bomb: "💣", star: "⭐" };
 
   function updateFireBtn() {
     const racing = state === "race" || state === "count";
@@ -491,6 +543,25 @@
         GameAudio.dropOil();
         break;
       }
+      case "shield":
+        p.shield = true;
+        announce("SHIELD UP!", 900);
+        GameAudio.coin();
+        break;
+      case "bomb": {
+        // drop a mine behind — wider and harder hit than oil
+        const bidx = Math.floor(((zOf(p) - SEG_LEN * 2 + trackLen) % trackLen) / SEG_LEN);
+        const bItem = { type: "bomb", x: clamp(p.x, -0.9, 0.9), alive: true, dropped: true, expiresAt: raceT + 7 };
+        segs[bidx].items.push(bItem);
+        activeBombs.push(bItem);
+        GameAudio.dropOil();
+        break;
+      }
+      case "star":
+        p.starT = 4.5;
+        announce("★  STAR POWER!  ★", 1500);
+        GameAudio.itemGet();
+        break;
     }
     p.weapon = null;
     updateFireBtn();
@@ -567,6 +638,11 @@
         c.spinT = 0.9;
         return;
       }
+      if (item.dropped && item.type === "bomb" && item.alive && Math.abs(item.x - c.x) < 0.35 && c.airT <= 0) {
+        item.alive = false;
+        c.spinT = 1.2;
+        return;
+      }
       if (item.type === "ramp" && Math.abs(item.x - c.x) < 0.36 && c.airT <= 0 &&
           c.speed > MAX_SPEED * 0.25) {
         c.airTotal = 0.5;
@@ -578,7 +654,7 @@
     let band = 1;
     if (!c.finished && !player.finished) {
       const rel = progress(player) - progress(c);
-      band = clamp(1 + rel / (trackLen * 0.45) * 0.12, 0.9, 1.12);
+      band = clamp(1 + rel / (trackLen * 0.45) * DIFF[difficulty].bs, 0.9, 1.12);
     }
     let target = raceStarted ? MAX_SPEED * c.skill * band : 0;
     target *= 1 - Math.min(0.4, Math.abs(ahead.curve) * 0.055 * (2 - c.skill));
@@ -686,7 +762,7 @@
     elTitle.textContent = "SELECT CIRCUIT";
     elSubtitle.textContent = "";
     elPrompt.textContent = "";
-    if (!trackSelect.childElementCount) buildTrackButtons();
+    buildTrackButtons();
     trackSelect.hidden = false;
     overlay.classList.remove("hidden");
     updateSoundBtn();
@@ -694,6 +770,64 @@
   }
 
   function buildTrackButtons() {
+    trackSelect.innerHTML = "";
+
+    // ---- color picker ----
+    const colorSec = document.createElement("div");
+    colorSec.className = "ts-section";
+    const colorLabel = document.createElement("div");
+    colorLabel.className = "ts-label";
+    colorLabel.textContent = "YOUR KART";
+    colorSec.appendChild(colorLabel);
+    const swatchRow = document.createElement("div");
+    swatchRow.className = "color-swatches";
+    const activeColorIdx = PLAYER_COLORS.findIndex(function (c) {
+      return c[0] === playerColor[0] && c[1] === playerColor[1] && c[2] === playerColor[2];
+    });
+    PLAYER_COLORS.forEach(function (c, i) {
+      const sw = document.createElement("button");
+      sw.className = "color-swatch" + (i === activeColorIdx ? " active" : "");
+      sw.style.background = "rgb(" + Math.round(c[0] * 255) + "," + Math.round(c[1] * 255) + "," + Math.round(c[2] * 255) + ")";
+      sw.addEventListener("click", function (e) {
+        e.stopPropagation();
+        playerColor = c;
+        localStorage.setItem("neondrift.color", JSON.stringify(c));
+        document.querySelectorAll(".color-swatch").forEach(function (s, j) {
+          s.classList.toggle("active", j === i);
+        });
+      });
+      swatchRow.appendChild(sw);
+    });
+    colorSec.appendChild(swatchRow);
+    trackSelect.appendChild(colorSec);
+
+    // ---- difficulty ----
+    const diffSec = document.createElement("div");
+    diffSec.className = "ts-section";
+    const diffLabel = document.createElement("div");
+    diffLabel.className = "ts-label";
+    diffLabel.textContent = "DIFFICULTY";
+    diffSec.appendChild(diffLabel);
+    const diffRow = document.createElement("div");
+    diffRow.className = "diff-row";
+    ["easy", "normal", "hard"].forEach(function (d) {
+      const b = document.createElement("button");
+      b.className = "diff-btn diff-" + d + (difficulty === d ? " active" : "");
+      b.textContent = d.toUpperCase();
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        difficulty = d;
+        localStorage.setItem("neondrift.difficulty", d);
+        document.querySelectorAll(".diff-btn").forEach(function (btn) {
+          btn.classList.toggle("active", btn.classList.contains("diff-" + d));
+        });
+      });
+      diffRow.appendChild(b);
+    });
+    diffSec.appendChild(diffRow);
+    trackSelect.appendChild(diffSec);
+
+    // ---- circuit buttons ----
     const gp = document.createElement("button");
     gp.className = "gp";
     gp.textContent = "GRAND PRIX — ALL CIRCUITS";
@@ -925,6 +1059,13 @@
 
     if (state === "race" || state === "results" || state === "gpend") {
       raceT += dt;
+      // expire timed bombs
+      for (let bi = activeBombs.length - 1; bi >= 0; bi--) {
+        if (!activeBombs[bi].alive || raceT >= activeBombs[bi].expiresAt) {
+          activeBombs[bi].alive = false;
+          activeBombs.splice(bi, 1);
+        }
+      }
       if (player) {
         updatePlayer(dt);
         for (const c of cars) updateCar(c, dt, true);
@@ -1116,6 +1257,7 @@
         if (item.type === "coin") Sprites.coin(sx, p1.y, p1.w * 0.10, raceT + segIdx);
         else if (item.type === "cone") Sprites.cone(sx, p1.y, p1.w * 0.085);
         else if (item.type === "oil") Sprites.oil(sx, p1.y, p1.w * 0.22);
+        else if (item.type === "bomb" && item.alive) Sprites.bomb(sx, p1.y, p1.w * 0.14, raceT + segIdx * 0.3);
         else if (item.type === "box" && raceT > (item.deadUntil || 0)) {
           Sprites.itemBox(sx, p1.y, p1.w * 0.13, raceT + segIdx * 0.7);
         }
@@ -1168,6 +1310,20 @@
       if (player.airT > 0) {
         lift = Math.sin((1 - player.airT / player.airTotal) * Math.PI) * kw * 1.0;
         R.circle(px, py, kw * 0.45 * (1 - lift / (kw * 2.2)), [0, 0, 0, 0.35]);
+      }
+      // star aura — rainbow glow drawn under the kart
+      if (player.starT > 0) {
+        const hue = raceT * 2.5;
+        const pulse = Math.sin(raceT * 10) * 0.3 + 0.7;
+        const sc = [0.6 + 0.4 * Math.sin(hue), 0.6 + 0.4 * Math.sin(hue + 2.1), 0.6 + 0.4 * Math.sin(hue + 4.2)];
+        R.circle(px, py - lift - kw * 0.42, kw * 0.95, [sc[0], sc[1], sc[2], 0.28 * pulse], 14);
+        R.circle(px, py - lift - kw * 0.42, kw * 0.72, [1.0, 0.95, 0.35, 0.18], 14);
+      }
+      // shield bubble — cyan ring drawn under the kart
+      if (player.shield) {
+        const pulse = Math.sin(raceT * 6) * 0.2 + 0.8;
+        R.circle(px, py - lift - kw * 0.42, kw * 0.84, [0.35, 0.85, 1.0, 0.30 * pulse], 14);
+        R.circle(px, py - lift - kw * 0.42, kw * 0.74, [0.35, 0.85, 1.0, 0.10], 14);
       }
       Sprites.kart(px, py - lift, kw, player.color, {
         steer: player.steerVis + spin * 2,
