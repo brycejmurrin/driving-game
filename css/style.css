@@ -108,9 +108,11 @@ html, body {
   font-size: 16px;
   letter-spacing: 2px;
   line-height: 1.65;
-  color: #bfeaff;
+  color: #dff3ff;
   white-space: pre-line;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.95), 0 0 24px rgba(0, 0, 0, 0.85);
+  background: rgba(7, 10, 24, 0.62);
+  padding: 6px 18px;
+  border-radius: 8px;
 }
 
 #trackselect[hidden] {
