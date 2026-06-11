@@ -190,8 +190,9 @@
       driftCharge: 0, driftDir: 0, wasDrifting: false,
       steerVis: 0, driftVis: 0,
       airT: 0, airTotal: 1,            // ramp jumps
-      shield: false, starT: 0,         // new power-up states
+      shield: false, starT: 0,         // power-up states
       weapon: null,
+      aiFireT: 0,                      // AI: delay before firing held weapon
     };
   }
 
@@ -288,6 +289,11 @@
   }
 
   function zOf(r) { return (r.z0 + r.dist) % trackLen; }
+
+  // moving barriers oscillate across the road on the race clock
+  function sliderX(item) {
+    return item.x + Math.sin(raceT * (item.speed || 1) + (item.phase || 0)) * item.range;
+  }
   function progress(r) { return r.z0 + r.dist; }
   function lapsOf(r) { return Math.floor(progress(r) / trackLen); }
 
@@ -468,6 +474,20 @@
               GameAudio.oilSlip();
             }
             break;
+          case "barrier":
+          case "slider": {
+            const ix = item.type === "slider" ? sliderX(item) : item.x;
+            if (Math.abs(ix - p.x) < 0.3 && p.airT <= 0 && p.spinT <= 0) {
+              if (p.starT > 0) break;                 // smash through
+              if (p.shield) { p.shield = false; announce("BLOCKED!", 700); break; }
+              p.spinT = 1.0;
+              p.speed *= 0.25;
+              p.boostT = 0;
+              p.driftCharge = 0;
+              GameAudio.bonk();
+            }
+            break;
+          }
           case "bomb":
             if (item.expiresAt && raceT >= item.expiresAt) { item.alive = false; break; }
             if (dx < 0.35 && p.spinT <= 0 && p.hopT <= 0 && p.airT <= 0) {
@@ -533,6 +553,7 @@
           x: p.x,
           speed: Math.max(p.speed + 3600, 8800),
           life: 4,
+          owner: p,
         });
         GameAudio.fireMissile();
         break;
@@ -572,29 +593,90 @@
       m.z = (m.z + m.speed * dt) % trackLen;
       m.life -= dt;
       if (m.life <= 0) continue;
-      // gentle homing toward the nearest kart ahead
+      // gentle homing toward the nearest kart ahead (anyone but the shooter)
       let best = null, bestDz = 2600;
-      for (const c of cars) {
-        let dz = zOf(c) - m.z;
+      for (const r of racers) {
+        if (r === m.owner) continue;
+        let dz = zOf(r) - m.z;
         if (dz < -trackLen / 2) dz += trackLen;
         if (dz > trackLen / 2) dz -= trackLen;
-        if (dz > 0 && dz < bestDz) { best = c; bestDz = dz; }
+        if (dz > 0 && dz < bestDz) { best = r; bestDz = dz; }
       }
       if (best) m.x += clamp(best.x - m.x, -1, 1) * 1.6 * dt;
-      for (const c of cars) {
-        let dz = zOf(c) - m.z;
+      for (const r of racers) {
+        if (r === m.owner) continue;
+        let dz = zOf(r) - m.z;
         if (dz < -trackLen / 2) dz += trackLen;
         if (dz > trackLen / 2) dz -= trackLen;
-        if (Math.abs(dz) < 260 && Math.abs(c.x - m.x) < 0.32 && c.spinT <= 0) {
-          c.spinT = 1.3;
+        if (Math.abs(dz) < 260 && Math.abs(r.x - m.x) < 0.32 && r.spinT <= 0) {
           m.life = 0;
-          GameAudio.explosion();
-          announce("HIT " + c.name + "!", 800);
+          if (r.starT > 0) break;
+          if (r.shield) {
+            r.shield = false;
+            if (r.isPlayer) announce("BLOCKED!", 700);
+            break;
+          }
+          r.spinT = 1.3;
+          if (r.isPlayer) {
+            r.boostT = 0;
+            r.driftCharge = 0;
+            GameAudio.explosion();
+            announce("HIT BY " + (m.owner ? m.owner.name : "MISSILE") + "!", 900);
+          } else if (m.owner === player) {
+            GameAudio.explosion();
+            announce("HIT " + r.name + "!", 800);
+          }
           break;
         }
       }
     }
     missiles = missiles.filter(function (m) { return m.life > 0; });
+  }
+
+  // AI weapon use: fires after a short human-ish delay. Missiles are
+  // held until someone is actually in range ahead.
+  function aiFire(c) {
+    const wpn = c.weapon;
+    switch (wpn) {
+      case "missile": {
+        let found = false;
+        for (const r of racers) {
+          if (r === c) continue;
+          let dz = zOf(r) - zOf(c);
+          if (dz < -trackLen / 2) dz += trackLen;
+          if (dz > trackLen / 2) dz -= trackLen;
+          if (dz > 300 && dz < 2600) { found = true; break; }
+        }
+        if (!found) { c.aiFireT = 1; return; }   // hold until there's a target
+        missiles.push({
+          z: (zOf(c) + 350) % trackLen,
+          x: c.x,
+          speed: Math.max(c.speed + 3600, 8800),
+          life: 4,
+          owner: c,
+        });
+        break;
+      }
+      case "boost":
+        c.boostT = Math.max(c.boostT, 1.4);
+        break;
+      case "oil": {
+        const idx = Math.floor(((zOf(c) - SEG_LEN * 2 + trackLen) % trackLen) / SEG_LEN);
+        segs[idx].items.push({ type: "oil", x: clamp(c.x, -0.9, 0.9), alive: true, dropped: true });
+        break;
+      }
+      case "bomb": {
+        const idx = Math.floor(((zOf(c) - SEG_LEN * 2 + trackLen) % trackLen) / SEG_LEN);
+        const it = { type: "bomb", x: clamp(c.x, -0.9, 0.9), alive: true, dropped: true, expiresAt: raceT + 7 };
+        segs[idx].items.push(it);
+        activeBombs.push(it);
+        break;
+      }
+      case "shield":
+        c.shield = true;
+        break;
+    }
+    c.weapon = null;
   }
 
   function checkKartCollisions(p, dt) {
@@ -633,21 +715,54 @@
       return;
     }
     if (c.airT > 0) c.airT -= dt;
+    if (c.boostT > 0) c.boostT -= dt;
+    if (c.starT > 0) c.starT -= dt;
     for (const item of seg.items) {
       if (item.dropped && item.type === "oil" && Math.abs(item.x - c.x) < 0.22 && c.airT <= 0) {
+        if (c.starT > 0) continue;
+        if (c.shield) { c.shield = false; continue; }
         c.spinT = 0.9;
         return;
       }
       if (item.dropped && item.type === "bomb" && item.alive && Math.abs(item.x - c.x) < 0.35 && c.airT <= 0) {
         item.alive = false;
+        if (c.starT > 0) continue;
+        if (c.shield) { c.shield = false; continue; }
         c.spinT = 1.2;
         return;
+      }
+      if ((item.type === "barrier" || item.type === "slider") && c.airT <= 0) {
+        const ix = item.type === "slider" ? sliderX(item) : item.x;
+        if (Math.abs(ix - c.x) < 0.3 && c.starT <= 0) {
+          if (c.shield) { c.shield = false; continue; }
+          c.spinT = 1.0;
+          c.speed *= 0.3;
+          return;
+        }
       }
       if (item.type === "ramp" && Math.abs(item.x - c.x) < 0.36 && c.airT <= 0 &&
           c.speed > MAX_SPEED * 0.25) {
         c.airTotal = 0.5;
         c.airT = 0.5;
       }
+      // AI grabs weapon boxes too
+      if (item.type === "box" && !c.weapon && raceT > (item.deadUntil || 0) &&
+          Math.abs(item.x - c.x) < 0.28) {
+        item.deadUntil = raceT + 4;
+        const roll = Math.random();
+        c.weapon = roll < 0.35 ? "missile"
+                 : roll < 0.60 ? "boost"
+                 : roll < 0.75 ? "oil"
+                 : roll < 0.90 ? "bomb"
+                 : "shield";
+        c.aiFireT = 0.8 + Math.random() * 2.2;
+      }
+    }
+
+    // fire a held weapon after the think delay
+    if (c.weapon && raceStarted && c.spinT <= 0) {
+      c.aiFireT -= dt;
+      if (c.aiFireT <= 0) aiFire(c);
     }
 
     // rubber-banding keeps the pack near the player
@@ -658,6 +773,8 @@
     }
     let target = raceStarted ? MAX_SPEED * c.skill * band : 0;
     target *= 1 - Math.min(0.4, Math.abs(ahead.curve) * 0.055 * (2 - c.skill));
+    if (c.boostT > 0) target *= 1.25;
+    if (c.starT > 0) target *= 1.18;
     for (const item of seg.items) {
       if (item.type === "pad" && Math.abs(item.x - c.x) < 0.34) target *= 1.18;
     }
@@ -674,6 +791,15 @@
       if (dz < -trackLen / 2) dz += trackLen;
       if (dz > 0 && dz < 900 && Math.abs(o.x - c.x) < 0.35) {
         want = c.x + (c.x > o.x ? 0.45 : -0.45);
+      }
+    }
+    // swerve around barriers and sliders coming up
+    for (let k = 3; k <= 9; k += 2) {
+      const sa = segAt(z + SEG_LEN * k);
+      for (const item of sa.items) {
+        if (item.type !== "barrier" && item.type !== "slider") continue;
+        const ix = item.type === "slider" ? sliderX(item) : item.x;
+        if (Math.abs(ix - c.x) < 0.5) want = ix > c.x ? ix - 0.75 : ix + 0.75;
       }
     }
     c.x += clamp(want - c.x, -1, 1) * 1.1 * dt;
@@ -1094,9 +1220,25 @@
   const proj = [];                // per-frame projected segment edges
   for (let i = 0; i <= DRAW_SEG; i++) proj.push({ x: 0, y: 0, w: 0, scale: 0 });
 
+  const LANE1 = [0];              // lane-divider positions in half-widths
+  const LANE3 = [-0.345, 0.345];
+
+  // the classic synthwave sliced sun
+  function drawRetroSun(pal, sx, sy, r) {
+    R.circle(sx, sy, r * 1.25, fade(pal.sun, 1, 0.18), 24);
+    R.circle(sx, sy, r, mix(pal.sun, pal.sun, 0), 24);
+    R.circle(sx, sy, r * 0.985, pal.sunLo, 24);
+    R.circle(sx, sy - r * 0.45, r * 0.8, pal.sun, 20);
+    for (let i = 0; i < 4; i++) {
+      const yy = sy - r * 0.25 + i * r * 0.22;
+      R.quad(sx - r * 1.1, yy, r * 2.2, r * (0.035 + i * 0.012), mix(pal.skyTop, pal.skyBot, 0.85));
+    }
+  }
+
   function drawSky(pal, curveAccum, camXNorm) {
     const w = R.width, h = R.height;
     const hy = clamp(horizonY, h * 0.2, h * 0.75);
+    const fx = pal.skyFx || "sun";
     // vertical gradient in bands
     const bands = 5;
     for (let i = 0; i < bands; i++) {
@@ -1111,19 +1253,99 @@
       R.quad(s.x * w, s.y * hy, s.s, s.s, [1, 1, 1, 0.7 * tw]);
     }
 
-    // retro sun, shifted opposite the curve for parallax
+    // celestial centerpiece, shifted opposite the curve for parallax
     const sx = w / 2 - clamp(curveAccum * 0.45, -w * 0.35, w * 0.35) - camXNorm * 30;
     const sy = hy - h * 0.02;
     const r = Math.min(w, h) * 0.16;
-    R.circle(sx, sy, r * 1.25, fade(pal.sun, 1, 0.18), 24);
-    R.circle(sx, sy, r, mix(pal.sun, pal.sun, 0), 24);
-    R.circle(sx, sy, r * 0.985, pal.sunLo, 24);
-    R.circle(sx, sy - r * 0.45, r * 0.8, pal.sun, 20);
-    // horizontal slice cuts
-    for (let i = 0; i < 4; i++) {
-      const yy = sy - r * 0.25 + i * r * 0.22;
-      R.quad(sx - r * 1.1, yy, r * 2.2, r * (0.035 + i * 0.012), mix(pal.skyTop, pal.skyBot, 0.85));
+
+    if (fx === "sun") {
+      drawRetroSun(pal, sx, sy, r);
+    } else if (fx === "binary") {
+      // twin desert suns
+      drawRetroSun(pal, sx, sy, r);
+      drawRetroSun(pal, sx + r * 2.1, sy - r * 0.9, r * 0.45);
+    } else if (fx === "planet") {
+      // ringed gas giant hanging above the horizon
+      const py = sy - r * 1.0, pr = r * 0.85;
+      R.circle(sx, py, pr * 1.18, fade(pal.sun, 1, 0.15), 24);
+      R.circle(sx, py, pr, pal.sun, 24);
+      R.circle(sx - pr * 0.3, py - pr * 0.25, pr * 0.55, fade(pal.sunLo, 1, 0.5), 18);
+      R.quad(sx - pr * 0.9, py + pr * 0.3, pr * 1.8, pr * 0.12, fade(pal.sunLo, 1, 0.55));
+      R.rotQuad(sx, py + pr * 0.1, pr * 3.6, pr * 0.16, -0.22, fade(pal.glow, 1, 0.5));
+      R.rotQuad(sx, py + pr * 0.1, pr * 3.6, pr * 0.05, -0.22, [1, 1, 1, 0.4]);
+    } else if (fx === "moon") {
+      // big cratered moon
+      const my = sy - r * 0.55, mr = r * 0.95;
+      R.circle(sx, my, mr * 1.15, fade(pal.sun, 1, 0.15), 24);
+      R.circle(sx, my, mr, [0.88, 0.90, 0.95, 1], 24);
+      R.circle(sx - mr * 0.30, my - mr * 0.20, mr * 0.18, [0.72, 0.75, 0.82, 1], 10);
+      R.circle(sx + mr * 0.25, my + mr * 0.28, mr * 0.12, [0.72, 0.75, 0.82, 1], 10);
+      R.circle(sx + mr * 0.42, my - mr * 0.35, mr * 0.09, [0.72, 0.75, 0.82, 1], 8);
+      R.circle(sx - mr * 0.05, my + mr * 0.45, mr * 0.07, [0.72, 0.75, 0.82, 1], 8);
+    } else if (fx === "aurora") {
+      // drifting aurora curtains over a small sun
+      drawRetroSun(pal, sx, sy, r * 0.7);
+      for (let b = 0; b < 3; b++) {
+        const col = b === 0 ? [0.2, 0.85, 0.9] : b === 1 ? [0.3, 0.95, 0.55] : [0.5, 0.6, 1.0];
+        const n = 22;
+        for (let i = 0; i < n; i++) {
+          const x0 = i / n * w;
+          const yb = hy * (0.10 + b * 0.13)
+                   + Math.sin(i * 0.55 + raceT * (0.7 + b * 0.35) + b * 2.1) * hy * 0.07;
+          R.quad(x0, yb, w / n + 1, hy * 0.17, [col[0], col[1], col[2], 0.10]);
+        }
+      }
+    } else if (fx === "storm") {
+      drawRetroSun(pal, sx, sy, r * 0.8);
+      // periodic double-flash lightning with a jagged bolt
+      const cyc = raceT % 6.5;
+      if (cyc < 0.32) {
+        const fl = cyc < 0.12 ? 1 - cyc / 0.12 : cyc > 0.18 ? Math.max(0, 1 - (cyc - 0.18) / 0.14) : 0.25;
+        R.quad(0, 0, w, hy, [0.85, 0.85, 1.0, 0.16 * fl]);
+        const strike = Math.floor(raceT / 6.5);
+        let bx = w * (0.25 + 0.5 * Math.abs(Math.sin(strike * 37.7)));
+        let by = 0;
+        for (let i = 0; i < 5; i++) {
+          const nx = bx + (i % 2 === 0 ? 1 : -1) * w * (0.015 + 0.02 * Math.abs(Math.sin(strike * 13 + i)));
+          const ny = by + hy * 0.17;
+          R.quadP(bx, by, bx + 2.5, by, nx + 2.5, ny, nx, ny, [1, 1, 1, 0.8 * fl]);
+          bx = nx; by = ny;
+        }
+      }
+    } else if (fx === "cave") {
+      // no sun underground — stalactites with glowing tips instead
+      const sn = 12;
+      for (let i = 0; i < sn; i++) {
+        const hsh = (i * 37 % 13) / 13;
+        const cx = (((i + 0.5) / sn * w - curveAccum * 0.15) % w + w) % w;
+        const ch = hy * (0.12 + hsh * 0.24);
+        R.tri(cx - w * 0.028, 0, cx + w * 0.028, 0, cx, ch, [0.05, 0.03, 0.10, 1]);
+        R.circle(cx, ch, 2.4, fade(pal.glow, 1, 0.7), 6);
+      }
+    } else if (fx === "skyline") {
+      // small moon + endless city silhouette along the horizon
+      const my = sy - r * 1.3;
+      R.circle(sx + r * 1.6, my, r * 0.4, [0.88, 0.90, 0.96, 1], 18);
+      R.circle(sx + r * 1.48, my - r * 0.06, r * 0.07, [0.72, 0.75, 0.82, 1], 6);
+      const bn = 15;
+      const bw = w / bn;
+      const shift = ((curveAccum * 0.2) % bw + bw) % bw;
+      for (let i = -1; i <= bn; i++) {
+        const hsh = ((i + bn) * 53 % 17) / 17;
+        const bh = hy * (0.10 + hsh * 0.17);
+        const bx = i * bw - shift;
+        R.quad(bx, hy - bh, bw * 0.72, bh, [0.05, 0.06, 0.10, 1]);
+        if (bw > 18) {
+          for (let k = 0; k < 4; k++) {
+            if (((i + bn) * 31 + k * 7) % 5 > 1) continue;
+            R.quad(bx + bw * 0.12 + (k % 2) * bw * 0.3,
+                   hy - bh + bh * 0.18 + Math.floor(k / 2) * bh * 0.36,
+                   2.5, 3.5, [1.0, 0.9, 0.5, 0.8]);
+          }
+        }
+      }
     }
+
     // horizon glow line
     R.quad(0, hy - 2, w, 3, fade(pal.glow, 1, 0.6));
   }
@@ -1134,9 +1356,10 @@
     const baseIdx = Math.floor(camZ / SEG_LEN);
     const basePct = (camZ % SEG_LEN) / SEG_LEN;
     const camY = CAM_H + roadY(camZ);
-    const camX = camXNorm * ROAD_W;
+    const camX = camXNorm * ROAD_W * (track.roadScale || 1);
 
     const baseSeg = segs[baseIdx % segs.length];
+    const roadW = ROAD_W * (track.roadScale || 1);  // per-track road width
     let xAcc = 0;                               // road-center world x at near edge
     let dxAcc = -(baseSeg.curve * basePct);
     let curveTotal = 0;
@@ -1153,12 +1376,12 @@
         pr.scale = CAM_DEPTH / (SEG_LEN * 0.4);
         pr.x = w / 2 + pr.scale * (xAcc - camX) * (w / 2);
         pr.y = h + 5;
-        pr.w = pr.scale * ROAD_W * (w / 2);
+        pr.w = pr.scale * roadW * (w / 2);
       } else {
         pr.scale = CAM_DEPTH / dz;
         pr.x = w / 2 + pr.scale * (xAcc - camX) * (w / 2);
         pr.y = h / 2 - pr.scale * (seg.y1 - camY) * (h / 2);
-        pr.w = pr.scale * ROAD_W * (w / 2);
+        pr.w = pr.scale * roadW * (w / 2);
       }
       xAcc += dxAcc;
       dxAcc += seg.curve;
@@ -1191,13 +1414,17 @@
         R.quadP(p2.x - p2.w, p2.y, p2.x + p2.w, p2.y,
                 p1.x + p1.w, p1.y, p1.x - p1.w, p1.y, road);
 
-        // center lane dashes — skipped for sub-pixel far segments, where
-        // dozens of translucent draws stack into a white band at the horizon
+        // lane dashes — skipped for sub-pixel far segments, where dozens
+        // of translucent draws stack into a white band at the horizon.
+        // 3-lane tracks get two dividers instead of a center line.
         if (alt && p1.y - p2.y > 1.5) {
           const lane = mix(pal.lane, pal.skyBot, fog);
-          R.quadP(p2.x - p2.w * 0.012, p2.y, p2.x + p2.w * 0.012, p2.y,
-                  p1.x + p1.w * 0.015, p1.y, p1.x - p1.w * 0.015, p1.y,
-                  [lane[0], lane[1], lane[2], 0.7]);
+          const lanePos = track.lanes === 3 ? LANE3 : LANE1;
+          for (const lp of lanePos) {
+            R.quadP(p2.x + p2.w * (lp - 0.012), p2.y, p2.x + p2.w * (lp + 0.012), p2.y,
+                    p1.x + p1.w * (lp + 0.015), p1.y, p1.x + p1.w * (lp - 0.015), p1.y,
+                    [lane[0], lane[1], lane[2], 0.7]);
+          }
         }
 
         // checkered start/finish band on segments 6..7
@@ -1271,6 +1498,10 @@
         else if (item.type === "cone") Sprites.cone(sx, p1.y, p1.w * 0.085);
         else if (item.type === "oil") Sprites.oil(sx, p1.y, p1.w * 0.22);
         else if (item.type === "bomb" && item.alive) Sprites.bomb(sx, p1.y, p1.w * 0.14, raceT + segIdx * 0.3);
+        else if (item.type === "barrier") Sprites.barrier(sx, p1.y, p1.w * 0.52, track.palette.glow);
+        else if (item.type === "slider") {
+          Sprites.barrier(p1.x + p1.w * sliderX(item), p1.y, p1.w * 0.52, [1.0, 0.25, 0.35]);
+        }
         else if (item.type === "box" && raceT > (item.deadUntil || 0)) {
           Sprites.itemBox(sx, p1.y, p1.w * 0.13, raceT + segIdx * 0.7);
         }
@@ -1293,7 +1524,13 @@
           lift = Math.sin((1 - c.airT / c.airTotal) * Math.PI) * kw * 0.9;
           R.circle(x, y, kw * 0.4 * (1 - lift / (kw * 2)), [0, 0, 0, 0.3]);
         }
-        Sprites.kart(x, y - lift, kw, c.color, { steer: spin, time: raceT });
+        if (c.shield) {
+          const pulse = Math.sin(raceT * 6) * 0.2 + 0.8;
+          R.circle(x, y - lift - kw * 0.4, kw * 0.8, [0.35, 0.85, 1.0, 0.28 * pulse], 12);
+        }
+        Sprites.kart(x, y - lift, kw, c.color, {
+          steer: spin, time: raceT, boost: c.boostT > 0,
+        });
       }
       for (const m of missiles) {
         let rel = m.z - camZ;
@@ -1314,7 +1551,7 @@
       // render the same size. Caps are proportional — absolute pixel
       // caps made the kart change size relative to the world when the
       // page was zoomed.
-      const kw = CAM_DEPTH / CAM_H * ROAD_W * (w / 2) * 0.28;
+      const kw = CAM_DEPTH / CAM_H * ROAD_W * (track.roadScale || 1) * (w / 2) * 0.28;
       const px = w / 2 + player.steerVis * w * 0.04;
       const py = h * 0.92 + Math.sin(raceT * 22) * (player.speed / MAX_SPEED) * 1.6
                + (Math.abs(player.x) > 1.04 ? Math.sin(raceT * 50) * 2.5 : 0);

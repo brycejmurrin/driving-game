@@ -80,6 +80,16 @@ const Tracks = (function () {
 
   function ramp(segs, i, x) { put(segs, i, "ramp", x); }
 
+  // solid wall chunk: must be steered around (or jumped / star-smashed)
+  function barrier(segs, i, x) { put(segs, i, "barrier", x); }
+
+  // moving barrier that oscillates across the road
+  function slider(segs, i, x, range, speed) {
+    const seg = segs[((i % segs.length) + segs.length) % segs.length];
+    seg.items.push({ type: "slider", x: x, range: range, speed: speed || 1,
+                     phase: i * 0.7, alive: true });
+  }
+
   // chain of boost pads down the road
   function padChain(segs, i, x, n) {
     for (let k = 0; k < (n || 3); k++) pad(segs, i + k * 3, x);
@@ -143,6 +153,7 @@ const Tracks = (function () {
     ramp(s, 130, 0);
     ramp(s, 560, -0.25);
     padChain(s, 700, 0.2, 3);
+    barrier(s, 380, -0.4);
     autoScenery(s);
     return {
       name: "SUNRISE CIRCUIT",
@@ -197,12 +208,15 @@ const Tracks = (function () {
     ramp(s, 100, 0.3);
     ramp(s, 500, -0.2);
     padChain(s, 360, 0, 3);
+    barrier(s, 270, 0.45);
+    barrier(s, 690, -0.4);
     autoScenery(s);
     return {
       name: "NEON SPIRAL",
       laps: 3,
       segs: s,
       palette: {
+        skyFx: "planet",
         skyTop: [0.01, 0.03, 0.10], skyBot: [0.10, 0.35, 0.55],
         sun: [0.3, 0.95, 1.0], sunLo: [0.5, 0.3, 1.0],
         groundA: [0.02, 0.05, 0.10], groundB: [0.03, 0.07, 0.13],
@@ -257,12 +271,15 @@ const Tracks = (function () {
     ramp(s, 410, 0.25);
     ramp(s, 700, 0);
     padChain(s, 120, -0.3, 3);
+    slider(s, 290, 0, 0.55, 1.3);
+    slider(s, 640, 0, 0.5, 1.6);
     autoScenery(s);
     return {
       name: "MIDNIGHT GORGE",
       laps: 3,
       segs: s,
       palette: {
+        skyFx: "storm",
         skyTop: [0.01, 0.01, 0.05], skyBot: [0.20, 0.05, 0.30],
         sun: [0.9, 0.3, 1.0], sunLo: [1.0, 0.2, 0.5],
         groundA: [0.04, 0.02, 0.08], groundB: [0.05, 0.03, 0.11],
@@ -309,12 +326,14 @@ const Tracks = (function () {
     ramp(s, 450, 0.3);
     ramp(s, 690, -0.3);
     padChain(s, 140, 0, 3);
+    slider(s, 300, 0, 0.5, 0.8);
     autoScenery(s);
     return {
       name: "AURORA PASS",
       laps: 3,
       segs: s,
       palette: {
+        skyFx: "aurora",
         skyTop: [0.01, 0.04, 0.07], skyBot: [0.05, 0.40, 0.32],
         sun: [0.55, 1.0, 0.7], sunLo: [0.15, 0.75, 0.85],
         groundA: [0.02, 0.07, 0.06], groundB: [0.03, 0.09, 0.08],
@@ -362,6 +381,8 @@ const Tracks = (function () {
     ramp(s, 110, 0.2);
     ramp(s, 640, -0.25);
     padChain(s, 470, 0, 3);
+    barrier(s, 250, 0.4);
+    barrier(s, 590, -0.45);
     autoScenery(s);
     return {
       name: "CRIMSON CANYON",
@@ -416,12 +437,15 @@ const Tracks = (function () {
     ramp(s, 440, 0.25);
     ramp(s, 770, 0);
     padChain(s, 60, -0.3, 4);
+    slider(s, 360, 0, 0.55, 1.0);
+    barrier(s, 670, 0.45);
     autoScenery(s);
     return {
       name: "STARLIGHT BAY",
       laps: 3,
       segs: s,
       palette: {
+        skyFx: "moon",
         skyTop: [0.0, 0.01, 0.07], skyBot: [0.14, 0.18, 0.55],
         sun: [0.75, 0.85, 1.0], sunLo: [0.85, 0.4, 1.0],
         groundA: [0.02, 0.03, 0.09], groundB: [0.03, 0.04, 0.12],
@@ -473,6 +497,7 @@ const Tracks = (function () {
     return {
       name: "PALM ROYALE",
       laps: 3,
+      roadScale: 1.05,
       segs: s,
       palette: {
         skyTop: [0.02, 0.04, 0.10], skyBot: [0.80, 0.42, 0.16],
@@ -522,12 +547,16 @@ const Tracks = (function () {
     ramp(s, 436, 0);
     ramp(s, 442, 0.3);
     ramp(s, 150, 0);
+    slider(s, 560, 0, 0.6, 1.1); // sweeping gate on the run home
     themedScenery(s, "cactus", 8, 1.55);
     return {
       name: "SOLAR FLARE",
       laps: 3,
+      roadScale: 1.18,
+      lanes: 3,
       segs: s,
       palette: {
+        skyFx: "binary",
         skyTop: [0.07, 0.02, 0.01], skyBot: [0.82, 0.52, 0.10],
         sun: [1.0, 0.90, 0.45], sunLo: [1.0, 0.55, 0.15],
         groundA: [0.10, 0.05, 0.02], groundB: [0.13, 0.07, 0.03],
@@ -585,12 +614,17 @@ const Tracks = (function () {
     boxRow(s, 330);
     boxRow(s, 600);
     ramp(s, 280, 0);
+    barrier(s, 90, -0.45);       // construction zones squeeze the streets
+    barrier(s, 320, 0.45);
+    barrier(s, 500, -0.4);
     themedScenery(s, "building", 5, 1.85);
     return {
       name: "CHROME CITY",
       laps: 3,
+      roadScale: 0.85,
       segs: s,
       palette: {
+        skyFx: "skyline",
         skyTop: [0.01, 0.01, 0.04], skyBot: [0.12, 0.13, 0.22],
         sun: [0.92, 0.94, 1.0], sunLo: [0.50, 0.55, 0.70],
         groundA: [0.03, 0.03, 0.05], groundB: [0.04, 0.04, 0.07],
@@ -645,12 +679,17 @@ const Tracks = (function () {
     ramp(s, 120, 0.25);          // ramp at the crest = big air
     ramp(s, 430, -0.2);
     padChain(s, 640, 0, 3);
+    barrier(s, 200, 0.4);        // fallen rock blocks
+    barrier(s, 520, -0.45);
+    slider(s, 690, 0, 0.5, 1.2);
     themedScenery(s, "crystal", 6, 1.45);
     return {
       name: "CRYSTAL CAVERN",
       laps: 3,
+      roadScale: 0.9,
       segs: s,
       palette: {
+        skyFx: "cave",
         skyTop: [0.02, 0.01, 0.06], skyBot: [0.22, 0.12, 0.45],
         sun: [0.75, 0.60, 1.0], sunLo: [0.40, 0.70, 1.0],
         groundA: [0.04, 0.03, 0.09], groundB: [0.05, 0.04, 0.12],

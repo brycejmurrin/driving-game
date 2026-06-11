@@ -266,6 +266,21 @@ const Sprites = (function () {
     R.circle(x, y - h, w * 0.10, [glowColor[0], glowColor[1], glowColor[2], 0.7], 6);
   }
 
+  // Road barrier: hazard-striped wall block with a glowing top edge.
+  function barrier(x, y, w, glowColor) {
+    const h = w * 0.30;
+    R.quad(x - w / 2, y - h, w, h, [0.10, 0.10, 0.15, 1]);
+    const n = 5;
+    for (let i = 0; i < n; i++) {
+      const sx = x - w / 2 + (i + 0.12) * (w / n);
+      R.quadP(sx, y - h, sx + w / n * 0.42, y - h,
+              sx + w / n * 0.18, y, sx - w / n * 0.24, y,
+              [1.0, 0.75, 0.15, 0.95]);
+    }
+    R.quad(x - w / 2, y - h - w * 0.028, w, w * 0.03,
+           [glowColor[0], glowColor[1], glowColor[2], 0.9]);
+  }
+
   // Dropped mine: dark sphere with a sparking fuse.
   function bomb(x, y, w, t) {
     const cy = y - w * 0.58;
@@ -281,5 +296,5 @@ const Sprites = (function () {
   }
 
   return { kart, cone, oil, coin, pylon, arch, startArch, itemBox, missile, bomb,
-           palm, building, crystal, cactus };
+           palm, building, crystal, cactus, barrier };
 })();
