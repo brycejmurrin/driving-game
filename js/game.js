@@ -752,9 +752,7 @@
   }
 
   function tiltHint() {
-    if (Input.gyroSeen && Input.useTilt) return "Tilt your phone to steer\nHold DRIFT through corners · release for boost\nGrab ? boxes · fire with the weapon button";
-    if (Input.gyroDenied) return "Touch left / right to steer\nHold DRIFT through corners · release for boost\nGrab ? boxes · fire with the weapon button";
-    return "Tilt your phone to steer · drift for boosts\n? boxes hold weapons · 3 laps · 5 rivals";
+    return "6 circuits · 5 rivals · drift for boosts";
   }
 
   function showSelect() {
