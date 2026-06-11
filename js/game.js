@@ -801,6 +801,10 @@
     colorSec.appendChild(swatchRow);
     trackSelect.appendChild(colorSec);
 
+    const div1 = document.createElement("div");
+    div1.className = "ts-divider";
+    trackSelect.appendChild(div1);
+
     // ---- difficulty ----
     const diffSec = document.createElement("div");
     diffSec.className = "ts-section";
@@ -826,6 +830,10 @@
     });
     diffSec.appendChild(diffRow);
     trackSelect.appendChild(diffSec);
+
+    const div2 = document.createElement("div");
+    div2.className = "ts-divider";
+    trackSelect.appendChild(div2);
 
     // ---- circuit buttons ----
     const gp = document.createElement("button");
