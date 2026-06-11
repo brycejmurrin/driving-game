@@ -350,18 +350,19 @@ const GameAudio = (function () {
    * the wide lookahead rides out the gaps. If we ever fall behind (tab
    * frozen, long GC) we skip forward instead of burst-playing the gap.
    *
-   * Three 4-bar songs (16th-note grid, 64 steps), picked per circuit.
-   * The mix leans on mid/high harmonics (saws, octave doubles) because
-   * phone speakers reproduce almost nothing below ~300Hz.
+   * Six 4-bar songs (16th-note grid, 64 steps) — one per circuit, all
+   * up-tempo with driving 16th hats. The mix leans on mid/high
+   * harmonics (saws, octave doubles) because phone speakers reproduce
+   * almost nothing below ~300Hz.
    */
   const PATTERN_LEN = 64;                   // 4 bars of 16ths
   const LOOKAHEAD = 0.3;
 
   const SONGS = [
     { // SUNSET RUN — Am F C G, bright and driving
-      tempo: 144,
+      tempo: 152,
       roots: [110, 87.31, 130.81, 98],
-      drive: false,
+      drive: true,
       lead: [
         440, 0, 523, 587, 659, 0, 587, 523,  440, 0, 523, 0, 659, 587, 523, 0,
         523, 0, 440, 0, 349, 0, 440, 523,    698, 0, 659, 587, 523, 0, 440, 0,
@@ -369,8 +370,8 @@ const GameAudio = (function () {
         494, 0, 587, 0, 784, 740, 659, 587,  494, 587, 659, 0, 587, 0, 494, 0,
       ],
     },
-    { // HYPERDRIVE — C G Am F, the fastest and poppiest
-      tempo: 152,
+    { // HYPERDRIVE — C G Am F, the poppiest
+      tempo: 160,
       roots: [130.81, 98, 110, 87.31],
       drive: true,
       lead: [
@@ -381,7 +382,7 @@ const GameAudio = (function () {
       ],
     },
     { // NIGHT CHASE — Dm Bb F C, tense but pushing forward
-      tempo: 148,
+      tempo: 156,
       roots: [146.83, 116.54, 174.61, 130.81],
       drive: true,
       lead: [
@@ -389,6 +390,39 @@ const GameAudio = (function () {
         587, 0, 466, 0, 698, 587, 466, 0,     932, 0, 880, 698, 587, 0, 698, 0,
         698, 0, 880, 0, 1047, 880, 698, 0,    698, 880, 1047, 0, 1397, 0, 1047, 0,
         784, 0, 659, 784, 1047, 0, 784, 659,  587, 659, 784, 0, 880, 784, 698, 0,
+      ],
+    },
+    { // NEON SPRINT — Em C G D, soaring arps
+      tempo: 164,
+      roots: [82.41, 130.81, 98, 146.83],
+      drive: true,
+      lead: [
+        659, 0, 784, 659, 988, 0, 784, 659,   659, 784, 988, 0, 1319, 988, 784, 0,
+        523, 0, 659, 523, 784, 0, 659, 523,   523, 659, 784, 0, 1047, 784, 659, 0,
+        784, 0, 988, 784, 1175, 0, 988, 784,  587, 0, 784, 0, 988, 784, 587, 0,
+        587, 0, 740, 587, 880, 0, 740, 587,   587, 740, 880, 0, 1175, 880, 740, 0,
+      ],
+    },
+    { // TURBO FUNK — Am G F G, syncopated stabs
+      tempo: 158,
+      roots: [110, 98, 87.31, 98],
+      drive: true,
+      lead: [
+        440, 0, 0, 523, 659, 0, 523, 0,       440, 0, 523, 659, 880, 0, 659, 523,
+        494, 0, 0, 587, 784, 0, 587, 0,       494, 0, 587, 784, 988, 0, 784, 587,
+        523, 0, 0, 440, 698, 0, 523, 0,       440, 0, 523, 698, 880, 0, 698, 523,
+        494, 587, 784, 0, 988, 0, 784, 587,   988, 1175, 988, 0, 784, 0, 587, 0,
+      ],
+    },
+    { // FINAL RUSH — F Bb C C, full-throttle finale
+      tempo: 168,
+      roots: [87.31, 116.54, 130.81, 130.81],
+      drive: true,
+      lead: [
+        698, 0, 880, 698, 1047, 0, 880, 698,   698, 880, 1047, 0, 1397, 1047, 880, 0,
+        932, 0, 1175, 932, 1397, 0, 1175, 932, 587, 0, 698, 932, 1175, 932, 698, 0,
+        523, 659, 784, 0, 1047, 0, 784, 659,   523, 0, 659, 784, 1047, 784, 659, 0,
+        784, 0, 988, 784, 1175, 0, 988, 784,   1319, 1175, 988, 0, 784, 659, 587, 0,
       ],
     },
   ];
