@@ -343,15 +343,69 @@ html, body {
   transform: scale(0.94);
 }
 
-/* with arrow steering: drift moves up a row, fire centers between arrows */
+/*
+ * With arrow steering, each side gets a full stack so either thumb can
+ * drift or fire while the other steers:
+ *   steer arrow (bottom) -> DRIFT (middle) -> FIRE (top), both sides.
+ */
+#firebtn2[hidden],
+#driftbtn2[hidden] {
+  display: none;
+}
+
+#firebtn2,
+#driftbtn2 {
+  position: fixed;
+  left: calc(20px + env(safe-area-inset-left));
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(10, 16, 34, 0.5);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  z-index: 4;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+#driftbtn2 {
+  bottom: calc(112px + env(safe-area-inset-bottom));
+  border: 2px solid rgba(51, 230, 242, 0.8);
+}
+
+#firebtn2 {
+  bottom: calc(194px + env(safe-area-inset-bottom));
+  border: 2px solid rgba(255, 120, 60, 0.8);
+  font-size: 22px;
+}
+
+#firebtn2:active,
+#driftbtn2:active,
+#driftbtn2.held {
+  background: rgba(51, 230, 242, 0.25);
+  transform: scale(0.94);
+}
+
 body.btnsteer #driftbtn {
-  bottom: calc(116px + env(safe-area-inset-bottom));
+  right: calc(20px + env(safe-area-inset-right));
+  bottom: calc(112px + env(safe-area-inset-bottom));
+  width: 72px;
+  height: 72px;
+  font-size: 13px;
 }
 
 body.btnsteer #firebtn {
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(18px + env(safe-area-inset-bottom));
+  left: auto;
+  right: calc(20px + env(safe-area-inset-right));
+  bottom: calc(194px + env(safe-area-inset-bottom));
+  width: 72px;
+  height: 72px;
+  font-size: 22px;
 }
 
 /* fire button when no weapon is loaded (desktop always-visible state) */

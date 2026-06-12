@@ -66,6 +66,8 @@
   const trackSelect = document.getElementById("trackselect");
   const fireBtn = document.getElementById("firebtn");
   const driftBtn = document.getElementById("driftbtn");
+  const fireBtn2 = document.getElementById("firebtn2");
+  const driftBtn2 = document.getElementById("driftbtn2");
   const steerLBtn = document.getElementById("steerleft");
   const steerRBtn = document.getElementById("steerright");
   const soundBtn = document.getElementById("soundbtn");
@@ -537,6 +539,9 @@
       if (hasWeapon) fireBtn.textContent = WEAPON_ICON[player.weapon];
       fireBtn.classList.remove("no-weapon");
     }
+    // mirrored fire button on the left, only with arrow steering
+    fireBtn2.hidden = fireBtn.hidden || !document.body.classList.contains("btnsteer");
+    fireBtn2.textContent = fireBtn.textContent;
   }
 
   function fireWeapon() {
@@ -847,6 +852,8 @@
     state = last ? "gpend" : "results";
     fireBtn.hidden = true;
     driftBtn.hidden = true;
+    fireBtn2.hidden = true;
+    driftBtn2.hidden = true;
     GameAudio.stopEngine();
     updateHud();
   }
@@ -866,6 +873,8 @@
     pauseBtn.hidden = true;
     fireBtn.hidden = true;
     driftBtn.hidden = true;
+    fireBtn2.hidden = true;
+    driftBtn2.hidden = true;
     trackSelect.hidden = true;
     GameAudio.stopEngine();
     elTitle.textContent = "NEON DRIFT";
@@ -1076,15 +1085,22 @@
     btn.addEventListener("mouseup", off);
     btn.addEventListener("mouseleave", off);
   }
-  bindHold(driftBtn, function () {
-    Input.setButtonDrift(true);
-    driftBtn.classList.add("held");
-  }, function () {
-    Input.setButtonDrift(false);
-    driftBtn.classList.remove("held");
-  });
+  // with arrow steering there's a drift button on each side — holding
+  // either one drifts, so whichever thumb is free can do it
+  let driftHoldL = false, driftHoldR = false;
+  function applyDrift() {
+    Input.setButtonDrift(driftHoldL || driftHoldR);
+    driftBtn.classList.toggle("held", driftHoldR);
+    driftBtn2.classList.toggle("held", driftHoldL);
+  }
+  bindHold(driftBtn, function () { driftHoldR = true; applyDrift(); },
+                     function () { driftHoldR = false; applyDrift(); });
+  bindHold(driftBtn2, function () { driftHoldL = true; applyDrift(); },
+                      function () { driftHoldL = false; applyDrift(); });
   fireBtn.addEventListener("touchstart", function (e) { e.preventDefault(); Input.pressFire(); }, { passive: false });
   fireBtn.addEventListener("mousedown", function () { Input.pressFire(); });
+  fireBtn2.addEventListener("touchstart", function (e) { e.preventDefault(); Input.pressFire(); }, { passive: false });
+  fireBtn2.addEventListener("mousedown", function () { Input.pressFire(); });
 
   // sound toggle on the title/select screens; plays a chime as proof of life
   function updateSoundBtn() {
@@ -1156,7 +1172,10 @@
     if (steerLBtn.hidden === show) {
       steerLBtn.hidden = !show;
       steerRBtn.hidden = !show;
+      driftBtn2.hidden = !show;
+      if (!show) { driftHoldL = false; applyDrift(); }
       document.body.classList.toggle("btnsteer", show);
+      updateFireBtn();
     }
   }
 

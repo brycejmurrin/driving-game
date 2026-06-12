@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-180.png">
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=26">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -74,11 +74,11 @@
         <dt>STEER (TILT)</dt>
         <dd>Tilt left/right &mdash; calibrates at countdown &mdash; allow motion permission on first tap</dd>
         <dt>STEER (NO TILT)</dt>
-        <dd>&#9664; &#9654; buttons at bottom corners &mdash; toggle <span class="key">TILT</span> in pause menu</dd>
+        <dd>&#9664; &#9654; buttons at bottom corners; <span class="key">DRIFT</span> &amp; <span class="key">FIRE</span> stack above them on <em>both</em> sides, so either thumb works &mdash; toggle <span class="key">TILT</span> in pause menu</dd>
         <dt>DRIFT/BOOST</dt>
-        <dd>Hold <span class="key">DRIFT</span> (bottom-right) through corner &rarr; sparks turn <span class="hi-blue">blue</span> &rarr; release = boost. Hop clears cones &amp; oil</dd>
+        <dd>Hold <span class="key">DRIFT</span> through corner &rarr; sparks turn <span class="hi-blue">blue</span> &rarr; release = boost. Hop clears cones &amp; oil</dd>
         <dt>WEAPONS</dt>
-        <dd>Drive through <span class="hi-y">?</span> box. Tap weapon button to fire &mdash; bottom-left with tilt, center-bottom without</dd>
+        <dd>Drive through <span class="hi-y">?</span> box. Tap the weapon button to fire &mdash; bottom-left with tilt, above the arrows without</dd>
         <dt>&#128640; MISSILE</dt><dd>Homes in on kart ahead, spins it out</dd>
         <dt>&#9889; BOOST</dt><dd>Instant speed burst</dd>
         <dt>&#128167; OIL</dt><dd>Drops a slick behind you</dd>
@@ -129,6 +129,8 @@
 <button id="soundbtn" hidden>&#9834; ON</button>
 <button id="firebtn" hidden></button>
 <button id="driftbtn" hidden>DRIFT</button>
+<button id="firebtn2" hidden></button>
+<button id="driftbtn2" hidden>DRIFT</button>
 <button id="steerleft" hidden>&#9664;</button>
 <button id="steerright" hidden>&#9654;</button>
 
@@ -138,11 +140,11 @@
   <p>Sorry &mdash; your browser does not support WebGL.</p>
 </div>
 
-<script src="js/renderer.js?v=25"></script>
-<script src="js/input.js?v=25"></script>
-<script src="js/tracks.js?v=25"></script>
-<script src="js/sprites.js?v=25"></script>
-<script src="js/audio.js?v=25"></script>
-<script src="js/game.js?v=25"></script>
+<script src="js/renderer.js?v=26"></script>
+<script src="js/input.js?v=26"></script>
+<script src="js/tracks.js?v=26"></script>
+<script src="js/sprites.js?v=26"></script>
+<script src="js/audio.js?v=26"></script>
+<script src="js/game.js?v=26"></script>
 </body>
 </html>
