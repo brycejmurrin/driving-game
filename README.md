@@ -9,13 +9,21 @@ and [Neon Slice](https://github.com/brycejmurrin/pizza): same engine
 style, this time with an engine.
 
 The track is a classic pseudo-3D segmented road (OutRun style). Race five
-rivals across **ten circuits** — from flowing beach sweepers lined with
-palm trees, to a tight night street circuit between glowing skyscrapers,
-to an underground cavern of violet crystal — pick one from the select
-screen or run the full Grand Prix. Grab coins, weapon boxes, and boost
-pads while dodging cones and oil slicks. The headline feature: **steer
-by tilting your phone**, using the device gyroscope. Each circuit has
-its own color palette, themed trackside scenery, and chiptune.
+rivals across **twelve circuits** — from flowing beach sweepers lined
+with palm trees, to a volcanic caldera under a molten sky, to a tight
+night street circuit between glowing skyscrapers, to a bioluminescent
+deep-sea trench, to an underground cavern of violet crystal — pick one
+from the select screen or run the full Grand Prix. Grab coins, weapon
+boxes, and boost pads while dodging cones, oil slicks, and barriers. The
+headline feature: **steer by tilting your phone**, using the device
+gyroscope. Each circuit has its own color palette, sky effect, themed
+trackside scenery, and chiptune.
+
+Rivals fight back — the AI grabs weapon boxes and fires missiles, drops
+mines, and shields up. Tuck in behind a kart on a straight for a
+**slipstream** speed boost, chase your **best-lap record** on each
+circuit (saved locally), and watch the HUD for your lap timer and armed
+weapon.
 
 ## How to play
 

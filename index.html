@@ -12,7 +12,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-180.png">
-<link rel="stylesheet" href="css/style.css?v=26">
+<link rel="stylesheet" href="css/style.css?v=27">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -34,6 +34,14 @@
     <div class="hud-label">POS</div>
     <div id="pos" class="hud-value">-</div>
   </div>
+  <div class="hud-col">
+    <div class="hud-label">TIME</div>
+    <div id="laptime" class="hud-value">0:00</div>
+  </div>
+  <div class="hud-col">
+    <div class="hud-label">ARM</div>
+    <div id="weaponhud" class="hud-value">-</div>
+  </div>
 </div>
 
 <div id="announce"></div>
@@ -51,7 +59,7 @@
 
 <div id="overlay">
   <h1 id="title">NEON&nbsp;DRIFT</h1>
-  <p id="subtitle">10 circuits &middot; 5 rivals &middot; drift for boosts</p>
+  <p id="subtitle">12 circuits &middot; 5 rivals &middot; drift for boosts</p>
   <div id="trackselect" hidden></div>
   <p id="prompt">TAP TO START</p>
   <p id="audiostate"></p>
@@ -119,6 +127,8 @@
         <dt>OIL SLICKS</dt><dd>Scrambles steering &mdash; drift hop clears them</dd>
         <dt>BARRIERS</dt><dd>Striped walls (some patrol the road!) &mdash; steer around, jump over, or smash through with a star</dd>
         <dt>RIVALS</dt><dd>The AI grabs <span class="hi-y">?</span> boxes too &mdash; watch for incoming missiles &amp; mines</dd>
+        <dt>SLIPSTREAM</dt><dd>Tuck in close behind a rival on a straight for a speed boost</dd>
+        <dt>BEST LAP</dt><dd>Your record lap on each circuit is saved &mdash; chase it on the <span class="hi-y">TIME</span> HUD</dd>
         <dt>SCORING</dt><dd>1st&nbsp;1200 &middot; 2nd&nbsp;900 &middot; 3rd&nbsp;650 &middot; 4th&nbsp;450 &middot; 5th&nbsp;300 &middot; 6th&nbsp;200</dd>
         <dt>GRAND PRIX</dt><dd>Score adds up across all circuits &mdash; high score saved locally</dd>
       </dl>
@@ -140,11 +150,11 @@
   <p>Sorry &mdash; your browser does not support WebGL.</p>
 </div>
 
-<script src="js/renderer.js?v=26"></script>
-<script src="js/input.js?v=26"></script>
-<script src="js/tracks.js?v=26"></script>
-<script src="js/sprites.js?v=26"></script>
-<script src="js/audio.js?v=26"></script>
-<script src="js/game.js?v=26"></script>
+<script src="js/renderer.js?v=27"></script>
+<script src="js/input.js?v=27"></script>
+<script src="js/tracks.js?v=27"></script>
+<script src="js/sprites.js?v=27"></script>
+<script src="js/audio.js?v=27"></script>
+<script src="js/game.js?v=27"></script>
 </body>
 </html>

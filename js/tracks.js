@@ -701,9 +701,138 @@ const Tracks = (function () {
     };
   }
 
+  /*
+   * INFERNO RIDGE — volcanic caldera at dusk. Fast and moderately
+   * technical: long drags broken by sharp descents into the crater,
+   * ramps placed over the hottest fissures. Molten "lava" sky, jagged
+   * lavarock scenery, amber-on-char palette.
+   */
+  function infernoRidge() {
+    const s = [];
+    straight(s, 70);
+    curve(s, 60, 3, 2);
+    curve(s, 50, -3.5, -1);
+    straight(s, 80, 1);
+    curve(s, 70, 4, 2);
+    curve(s, 60, -4, -2);
+    straight(s, 40, -1);
+    curve(s, 50, 3.5, 1.5);
+    curve(s, 45, -3.5, -1.5);
+    straight(s, 90, 2);
+    curve(s, 80, 2.5, -2);
+    curve(s, 70, -2.5);
+    closeLoop(s, 80);
+
+    coinRow(s, 75, 7, 0);
+    coinArc(s, 190, 6, -0.45, 0.45);
+    coinRow(s, 350, 6, 0.3);
+    coinArc(s, 520, 7, 0.5, -0.5);
+    coinRow(s, 680, 5, -0.3);
+    pad(s, 140, 0);
+    pad(s, 380, -0.3);
+    pad(s, 650, 0.25);
+    padChain(s, 650, 0.25, 3);
+    cone(s, 210, 0.4);
+    cone(s, 212, -0.45);
+    cone(s, 470, 0.15);
+    oil(s, 310, 0.2);
+    oil(s, 580, -0.25);
+    boxRow(s, 60);
+    boxRow(s, 380);
+    boxRow(s, 720);
+    ramp(s, 130, -0.1);
+    ramp(s, 420, 0.2);
+    ramp(s, 710, -0.2);
+    barrier(s, 240, -0.4);
+    barrier(s, 550, 0.45);
+    slider(s, 300, 0, 0.5, 1.2);
+    themedScenery(s, "lavarock", 8, 1.6);
+    return {
+      name: "INFERNO RIDGE",
+      laps: 3,
+      segs: s,
+      palette: {
+        skyFx: "lava",
+        skyTop: [0.15, 0.06, 0.02], skyBot: [0.70, 0.32, 0.08],
+        sun: [1.0, 0.55, 0.20], sunLo: [1.0, 0.80, 0.40],
+        groundA: [0.08, 0.04, 0.03], groundB: [0.10, 0.06, 0.04],
+        roadA: [0.14, 0.10, 0.09], roadB: [0.12, 0.08, 0.07],
+        rumbleA: [1.0, 0.70, 0.15], rumbleB: [1.0, 0.40, 0.10],
+        lane: [1.0, 0.92, 0.78],
+        glow: [1.0, 0.55, 0.18],
+      },
+    };
+  }
+
+  /*
+   * ABYSSAL TRENCH — deep-sea canyon lit only by bioluminescence.
+   * Tight and twisting, narrower road, slower flow; coral walls and a
+   * huge shadow drifting across the "abyss" sky. Cyan-on-black palette.
+   */
+  function abyssalTrench() {
+    const s = [];
+    straight(s, 60);
+    curve(s, 50, 3.5, -1);
+    curve(s, 50, -4.5, -2);
+    straight(s, 40, -2);
+    curve(s, 60, 2.5, 1);
+    curve(s, 55, -3, 0);
+    straight(s, 50, 1);
+    curve(s, 70, 4, 2);
+    curve(s, 65, -3.5, -1.5);
+    straight(s, 45, -1);
+    curve(s, 60, 3, 1);
+    curve(s, 55, -2.5, -0.5);
+    straight(s, 70, 1);
+    closeLoop(s, 70);
+
+    coinRow(s, 65, 5, 0);
+    coinArc(s, 160, 6, -0.4, 0.4);
+    coinRow(s, 300, 5, 0.25);
+    coinArc(s, 460, 6, 0.5, -0.5);
+    coinRow(s, 620, 5, -0.3);
+    pad(s, 130, 0);
+    pad(s, 400, 0.2);
+    pad(s, 660, -0.25);
+    cone(s, 190, 0.35);
+    cone(s, 192, -0.4);
+    cone(s, 500, 0.4);
+    cone(s, 502, -0.2);
+    oil(s, 240, -0.2);
+    oil(s, 360, 0.25);
+    oil(s, 580, 0);
+    boxRow(s, 55);
+    boxRow(s, 340);
+    boxRow(s, 680);
+    ramp(s, 110, -0.15);
+    ramp(s, 620, 0.2);
+    barrier(s, 220, 0.45);
+    barrier(s, 420, -0.4);
+    slider(s, 280, 0, 0.4, 1.0);
+    slider(s, 500, 0, 0.35, 0.8);
+    themedScenery(s, "coral", 6, 1.4);
+    return {
+      name: "ABYSSAL TRENCH",
+      laps: 3,
+      roadScale: 0.9,
+      segs: s,
+      palette: {
+        skyFx: "abyss",
+        skyTop: [0.01, 0.03, 0.08], skyBot: [0.04, 0.10, 0.18],
+        sun: [0.35, 0.65, 1.0], sunLo: [0.55, 0.80, 1.0],
+        groundA: [0.02, 0.04, 0.10], groundB: [0.03, 0.05, 0.12],
+        roadA: [0.06, 0.12, 0.20], roadB: [0.05, 0.10, 0.18],
+        rumbleA: [0.40, 0.75, 1.0], rumbleB: [0.30, 0.60, 0.95],
+        lane: [0.65, 0.90, 1.0],
+        glow: [0.45, 0.80, 1.0],
+      },
+    };
+  }
+
   // Order is the GP running order: difficulty ramps up.
   const list = [sunriseCircuit, palmRoyale, neonSpiral, auroraPass, solarFlare,
-                starlightBay, crimsonCanyon, chromeCity, crystalCavern, midnightGorge];
+                starlightBay, infernoRidge, crimsonCanyon, abyssalTrench,
+                chromeCity, crystalCavern, midnightGorge];
   const meta = [
     { name: "SUNRISE CIRCUIT", color: "#ff4d8c" },
     { name: "PALM ROYALE", color: "#2ee6c0" },
@@ -711,7 +840,9 @@ const Tracks = (function () {
     { name: "AURORA PASS", color: "#4dff99" },
     { name: "SOLAR FLARE", color: "#ffd24d" },
     { name: "STARLIGHT BAY", color: "#7a99ff" },
+    { name: "INFERNO RIDGE", color: "#ff5a1e" },
     { name: "CRIMSON CANYON", color: "#ff8033" },
+    { name: "ABYSSAL TRENCH", color: "#33c9ff" },
     { name: "CHROME CITY", color: "#f2f24d" },
     { name: "CRYSTAL CAVERN", color: "#b366ff" },
     { name: "MIDNIGHT GORGE", color: "#ff4dcc" },

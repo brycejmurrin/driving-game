@@ -266,6 +266,37 @@ const Sprites = (function () {
     R.circle(x, y - h, w * 0.10, [glowColor[0], glowColor[1], glowColor[2], 0.7], 6);
   }
 
+  // Volcanic rock: jagged dark silhouette with glowing molten pockets.
+  function lavarock(x, y, w, glowColor) {
+    const h = w * 2.6;
+    const g = glowColor;
+    R.circle(x, y - h * 0.35, w * 1.0, [g[0] * 0.8, g[1] * 0.5, g[2] * 0.3, 0.14], 12);
+    R.tri(x - w * 0.6, y, x - w * 0.15, y - h * 0.5, x - w * 0.35, y - h * 0.2, [0.06, 0.03, 0.02, 1]);
+    R.tri(x - w * 0.2, y - h * 0.42, x + w * 0.35, y - h * 0.7, x + w * 0.1, y - h * 0.46, [0.07, 0.035, 0.02, 1]);
+    R.tri(x + w * 0.25, y - h * 0.6, x + w * 0.65, y - h * 0.35, x + w * 0.45, y - h * 0.52, [0.08, 0.04, 0.025, 1]);
+    R.tri(x - w * 0.4, y, x + w * 0.55, y, x + w * 0.1, y - h * 0.4, [0.05, 0.025, 0.015, 1]);
+    // molten cracks / pockets
+    R.circle(x - w * 0.25, y - h * 0.28, w * 0.16, [g[0], g[1] * 1.15, g[2], 0.9], 7);
+    R.circle(x + w * 0.18, y - h * 0.42, w * 0.12, [g[0], g[1] * 1.25, g[2] * 1.1, 0.92], 6);
+    R.circle(x + w * 0.02, y - h * 0.1, w * 0.1, [g[0], g[1], g[2], 0.85], 6);
+  }
+
+  // Bioluminescent coral: branching stalks with glowing polyp tips.
+  function coral(x, y, w, glowColor) {
+    const h = w * 3.2;
+    const g = glowColor;
+    R.circle(x, y - h * 0.4, w * 1.0, [g[0] * 0.5, g[1] * 0.7, g[2], 0.10], 12);
+    R.quad(x - w * 0.09, y - h * 0.45, w * 0.18, h * 0.45, [0.10, 0.22, 0.30, 0.85]);
+    const tips = [[-0.42, -0.62, 0.7], [-0.12, -0.85, 0.95], [0.22, -0.78, 0.85], [0.46, -0.5, 0.6]];
+    for (const t of tips) {
+      const bx = x + t[0] * w, by = y - h * (-t[1]);
+      R.quadP(x - w * 0.05, y - h * 0.4, x + w * 0.05, y - h * 0.4,
+              bx + w * 0.06, by, bx - w * 0.06, by, [0.10, 0.25, 0.32, 0.8]);
+      R.circle(bx, by, w * 0.13 * t[2], [g[0], g[1], g[2], 0.85], 7);
+      R.circle(bx, by, w * 0.07 * t[2], [1, 1, 1, 0.55], 5);
+    }
+  }
+
   // Road barrier: hazard-striped wall block with a glowing top edge.
   function barrier(x, y, w, glowColor) {
     const h = w * 0.30;
@@ -296,5 +327,5 @@ const Sprites = (function () {
   }
 
   return { kart, cone, oil, coin, pylon, arch, startArch, itemBox, missile, bomb,
-           palm, building, crystal, cactus, barrier };
+           palm, building, crystal, cactus, barrier, lavarock, coral };
 })();

@@ -166,7 +166,7 @@ const Renderer = (function () {
 
   // Filled circle as a triangle fan.
   function circle(cx, cy, r, color, segs) {
-    const n = segs || Math.max(10, Math.min(40, Math.round(r * 0.7)));
+    const n = segs || Math.max(10, Math.min(24, Math.round(r * 0.7)));
     let px = cx + r, py = cy;
     for (let i = 1; i <= n; i++) {
       const a = (i / n) * Math.PI * 2;

@@ -56,6 +56,8 @@
   const elHiscore = document.getElementById("hiscore");
   const elLap = document.getElementById("lap");
   const elPos = document.getElementById("pos");
+  const elLapTime = document.getElementById("laptime");
+  const elWeaponHud = document.getElementById("weaponhud");
   const overlay = document.getElementById("overlay");
   const elTitle = document.getElementById("title");
   const elSubtitle = document.getElementById("subtitle");
@@ -117,8 +119,20 @@
   let hiscore = Number(localStorage.getItem("neondrift.hiscore") || 0);
   let playerColor = JSON.parse(localStorage.getItem("neondrift.color") || "null") || PLAYER_COLORS[0];
   let difficulty = localStorage.getItem("neondrift.difficulty") || "normal";
+  if (!DIFF[difficulty]) difficulty = "normal";   // guard against stale/invalid storage
   let activeBombs = [];           // live bomb items for timer-based expiry
   let horizonY = 0;               // previous-frame horizon, for the sky
+  let shakeT = 0;                  // screen-shake intensity, decays each frame
+  let lapStartT = 0;              // raceT at the current lap's start
+  let lastLapT = 0;               // duration of the last completed lap
+  let bestLapT = 0;               // best lap this race
+  function shake(amt) { shakeT = Math.max(shakeT, amt); }
+  function fmtTime(s) {
+    if (!s || s <= 0) return "--:--";
+    const m = Math.floor(s / 60);
+    const sec = s - m * 60;
+    return m + ":" + (sec < 10 ? "0" : "") + sec.toFixed(2);
+  }
 
   let announceTimer = null;
 
@@ -159,13 +173,18 @@
   function updateHud() {
     elScore.textContent = String(score + raceCoins * 25);
     elHiscore.textContent = String(hiscore);
-    if (player && (state === "race" || state === "count" || state === "results")) {
+    const racing = player && (state === "race" || state === "count" || state === "results");
+    if (racing) {
       const lapNum = Math.min(track.laps, player.laps + 1);
       elLap.textContent = lapNum + "/" + track.laps;
       elPos.textContent = POS_LABEL[player.rank];
+      elLapTime.textContent = fmtTime(state === "count" ? 0 : raceT - lapStartT);
+      elWeaponHud.textContent = player.weapon ? WEAPON_ICON[player.weapon] : "-";
     } else {
       elLap.textContent = "-";
       elPos.textContent = "-";
+      elLapTime.textContent = "0:00";
+      elWeaponHud.textContent = "-";
     }
   }
 
@@ -189,6 +208,7 @@
       lane: gridCol * 0.8,
       // effect timers (spinT is shared: missiles spin AI out too)
       boostT: 0, spinT: 0, slideT: 0, hopT: 0,
+      draftT: 0, draftAnn: false,
       driftCharge: 0, driftDir: 0, wasDrifting: false,
       steerVis: 0, driftVis: 0,
       airT: 0, airTotal: 1,            // ramp jumps
@@ -206,6 +226,10 @@
     raceCoins = 0;
     raceT = 0;
     finishT = 0;
+    lapStartT = 0;
+    lastLapT = 0;
+    bestLapT = 0;
+    shakeT = 0;
     missiles = [];
     activeBombs = [];
     buildMinimap();
@@ -324,16 +348,36 @@
     const wasAir = p.airT > 0;
     if (p.airT > 0) p.airT -= dt;
     const airborne = p.airT > 0;
-    if (wasAir && !airborne) GameAudio.land();
+    if (wasAir && !airborne) { GameAudio.land(); shake(4); }
+
+    // slipstream: tucking close behind a rival on a straight pulls you
+    // along faster. Builds while drafting, decays when you break away.
+    let drafting = false;
+    if (state === "race" && !p.finished && p.spinT <= 0) {
+      for (const c of cars) {
+        let dz = zOf(c) - zOf(p);
+        if (dz > trackLen / 2) dz -= trackLen;
+        if (dz < -trackLen / 2) dz += trackLen;
+        if (dz > 120 && dz < 700 && Math.abs(c.x - p.x) < 0.45) { drafting = true; break; }
+      }
+    }
+    p.draftT = drafting ? Math.min(1, (p.draftT || 0) + dt * 1.5)
+                        : Math.max(0, (p.draftT || 0) - dt * 2.5);
 
     // throttle: automatic. Effects shape the target speed.
-    let target = MAX_SPEED;
+    let target = MAX_SPEED * (1 + 0.13 * p.draftT);
     if (p.boostT > 0) target *= BOOST_MULT;
     if (Math.abs(p.x) > 1.04 && !airborne) target = MAX_SPEED * 0.35;  // off-road
     if (p.spinT > 0) target = MAX_SPEED * 0.2;
     if (Input.braking()) target = MAX_SPEED * 0.25;
     const k = p.speed > target ? 2.6 : (p.boostT > 0 ? 2.2 : 0.85);
     p.speed += (target - p.speed) * Math.min(1, k * dt);
+    if (drafting && p.draftT > 0.55 && !p.draftAnn) {
+      p.draftAnn = true;
+      announce("SLIPSTREAM!", 700);
+    } else if (!drafting) {
+      p.draftAnn = false;
+    }
 
     // steering
     let steer = state === "race" && !p.finished ? Input.steer() : autoSteer(p);
@@ -394,6 +438,9 @@
     const lapsNow = lapsOf(p);
     if (lapsNow > oldLaps && !p.finished) {
       p.laps = lapsNow;
+      lastLapT = raceT - lapStartT;
+      if (bestLapT <= 0 || lastLapT < bestLapT) bestLapT = lastLapT;
+      lapStartT = raceT;
       if (lapsNow >= track.laps) {
         playerFinish();
       } else if (lapsNow === track.laps - 1) {
@@ -465,6 +512,7 @@
               p.spinT = 0.9;
               p.boostT = 0;
               p.driftCharge = 0;
+              shake(5);
               GameAudio.hitCone();
             }
             break;
@@ -486,6 +534,7 @@
               p.speed *= 0.25;
               p.boostT = 0;
               p.driftCharge = 0;
+              shake(9);
               GameAudio.bonk();
             }
             break;
@@ -499,6 +548,7 @@
               p.spinT = 1.2;
               p.boostT = 0;
               p.driftCharge = 0;
+              shake(8);
               GameAudio.hitCone();
             }
             break;
@@ -598,44 +648,42 @@
       m.z = (m.z + m.speed * dt) % trackLen;
       m.life -= dt;
       if (m.life <= 0) continue;
-      // gentle homing toward the nearest kart ahead (anyone but the shooter)
-      let best = null, bestDz = 2600;
+      // single pass over racers: pick the nearest forward target to home
+      // on, and detect a hit, without scanning the array twice.
+      let best = null, bestDz = 2600, hit = null;
       for (const r of racers) {
         if (r === m.owner) continue;
         let dz = zOf(r) - m.z;
         if (dz < -trackLen / 2) dz += trackLen;
         if (dz > trackLen / 2) dz -= trackLen;
         if (dz > 0 && dz < bestDz) { best = r; bestDz = dz; }
+        if (!hit && Math.abs(dz) < 260 && Math.abs(r.x - m.x) < 0.32 && r.spinT <= 0) hit = r;
       }
       if (best) m.x += clamp(best.x - m.x, -1, 1) * 1.6 * dt;
-      for (const r of racers) {
-        if (r === m.owner) continue;
-        let dz = zOf(r) - m.z;
-        if (dz < -trackLen / 2) dz += trackLen;
-        if (dz > trackLen / 2) dz -= trackLen;
-        if (Math.abs(dz) < 260 && Math.abs(r.x - m.x) < 0.32 && r.spinT <= 0) {
-          m.life = 0;
-          if (r.starT > 0) break;
-          if (r.shield) {
-            r.shield = false;
-            if (r.isPlayer) announce("BLOCKED!", 700);
-            break;
-          }
-          r.spinT = 1.3;
-          if (r.isPlayer) {
-            r.boostT = 0;
-            r.driftCharge = 0;
-            GameAudio.explosion();
-            announce("HIT BY " + (m.owner ? m.owner.name : "MISSILE") + "!", 900);
-          } else if (m.owner === player) {
-            GameAudio.explosion();
-            announce("HIT " + r.name + "!", 800);
-          }
-          break;
+      if (hit) {
+        m.life = 0;
+        if (hit.starT > 0) continue;
+        if (hit.shield) {
+          hit.shield = false;
+          if (hit.isPlayer) announce("BLOCKED!", 700);
+          continue;
+        }
+        hit.spinT = 1.3;
+        if (hit.isPlayer) {
+          hit.boostT = 0;
+          hit.driftCharge = 0;
+          GameAudio.explosion();
+          shake(8);
+          announce("HIT BY " + (m.owner ? m.owner.name : "MISSILE") + "!", 900);
+        } else if (m.owner === player) {
+          GameAudio.explosion();
+          announce("HIT " + hit.name + "!", 800);
         }
       }
     }
-    missiles = missiles.filter(function (m) { return m.life > 0; });
+    for (let i = missiles.length - 1; i >= 0; i--) {
+      if (missiles[i].life <= 0) missiles.splice(i, 1);
+    }
   }
 
   // AI weapon use: fires after a short human-ish delay. Missiles are
@@ -679,6 +727,9 @@
       }
       case "shield":
         c.shield = true;
+        break;
+      case "star":
+        c.starT = 4.5;
         break;
     }
     c.weapon = null;
@@ -765,7 +816,7 @@
     }
 
     // fire a held weapon after the think delay
-    if (c.weapon && raceStarted && c.spinT <= 0) {
+    if (c.weapon && raceStarted && c.spinT <= 0 && !c.finished) {
       c.aiFireT -= dt;
       if (c.aiFireT <= 0) aiFire(c);
     }
@@ -775,6 +826,8 @@
     if (!c.finished && !player.finished) {
       const rel = progress(player) - progress(c);
       band = clamp(1 + rel / (trackLen * 0.45) * DIFF[difficulty].bs, 0.9, 1.12);
+      // last-lap drama: a trailing rival digs deeper for a closer finish
+      if (player.laps >= track.laps - 1 && rel > 0) band *= 1.06;
     }
     let target = raceStarted ? MAX_SPEED * c.skill * band : 0;
     target *= 1 - Math.min(0.4, Math.abs(ahead.curve) * 0.055 * (2 - c.skill));
@@ -841,6 +894,18 @@
     }
     lines += "\ncoins " + raceCoins + " × 25  +  " + POS_BONUS[pos] + " place bonus";
 
+    // per-track best-lap record
+    if (bestLapT > 0) {
+      const key = "neondrift.bestlap." + trackIdx;
+      const prev = Number(localStorage.getItem(key) || 0);
+      if (prev <= 0 || bestLapT < prev) {
+        localStorage.setItem(key, String(bestLapT));
+        lines += "\n★ NEW BEST LAP  " + fmtTime(bestLapT);
+      } else {
+        lines += "\nbest lap " + fmtTime(bestLapT) + "  ·  record " + fmtTime(prev);
+      }
+    }
+
     const last = queuePos === raceQueue.length - 1;
     const cup = raceQueue.length > 1;
     elTitle.textContent = last
@@ -887,7 +952,7 @@
   }
 
   function tiltHint() {
-    return "10 circuits · 5 rivals · drift for boosts";
+    return "12 circuits · 5 rivals · drift for boosts";
   }
 
   function showSelect() {
@@ -1213,6 +1278,7 @@
 
     if (state === "race" || state === "results" || state === "gpend") {
       raceT += dt;
+      if (shakeT > 0) shakeT = Math.max(0, shakeT - dt * 32);
       // expire timed bombs
       for (let bi = activeBombs.length - 1; bi >= 0; bi--) {
         if (!activeBombs[bi].alive || raceT >= activeBombs[bi].expiresAt) {
@@ -1363,6 +1429,44 @@
           }
         }
       }
+    } else if (fx === "lava") {
+      // a molten sun with rising ember sparks and drifting ash haze
+      const dy = Math.sin(raceT * 0.8) * r * 0.08;
+      drawRetroSun(pal, sx, sy + dy, r * 1.05);
+      for (let i = 0; i < 10; i++) {
+        const ph = (raceT * 0.9 + i * 1.7) % 3;
+        const ex = sx + Math.sin(i * 2.1) * r * 1.4;
+        const ey = sy - ph * hy * 0.18;
+        const a = (1 - ph / 3) * 0.7;
+        R.circle(ex, ey, 2.2 + (1 - ph / 3) * 2, [1.0, 0.5 + 0.3 * Math.sin(i), 0.12, a], 5);
+      }
+      for (let i = 0; i < 4; i++) {
+        const hx = (((sx + Math.sin(raceT * 0.3 + i) * w * 0.25) % w) + w) % w;
+        const hyy = sy + r * 0.5 + i * r * 0.22;
+        R.quad(hx - w * 0.09, hyy, w * 0.18, r * 0.16,
+               [0.7, 0.35, 0.12, 0.06 + 0.04 * Math.abs(Math.sin(raceT + i))]);
+      }
+    } else if (fx === "abyss") {
+      // deep sea: no sun. Drifting bioluminescent plankton and a slow
+      // shadow of something huge passing overhead.
+      for (let layer = 0; layer < 3; layer++) {
+        const ox = Math.sin(raceT * (0.1 + layer * 0.05)) * w * 0.2;
+        const n = 7 + layer * 2;
+        for (let i = 0; i < n; i++) {
+          const px = (((i / n) * w + ox) % w + w) % w;
+          const py = hy * (0.12 + layer * 0.16) + Math.cos(raceT * 0.2 + i) * hy * 0.05;
+          R.circle(px, py, 10 + layer * 6, [0.3, 0.6 + 0.12 * layer, 0.85, 0.09], 7);
+        }
+      }
+      const swim = (raceT * 0.5) % 14;
+      if (swim > 2 && swim < 9) {
+        const sa = Math.sin((swim - 2) / 7 * Math.PI) * 0.16;
+        const shx = (swim / 7) * w * 1.4 - w * 0.2;
+        const shy = hy * 0.32;
+        R.circle(shx, shy, r * 0.7, [0, 0, 0, sa], 18);
+        R.circle(shx - r * 0.6, shy + r * 0.12, r * 0.28, [0, 0, 0, sa], 10);
+        R.tri(shx - r * 0.95, shy, shx - r * 0.55, shy - r * 0.28, shx - r * 0.55, shy + r * 0.28, [0, 0, 0, sa]);
+      }
     }
 
     // horizon glow line
@@ -1509,6 +1613,8 @@
         else if (sc.type === "building") Sprites.building(sx, p1.y, p1.w * 0.42, track.palette.glow, sc.seed || segIdx);
         else if (sc.type === "crystal") Sprites.crystal(sx, p1.y, p1.w * 0.16, track.palette.glow);
         else if (sc.type === "cactus") Sprites.cactus(sx, p1.y, p1.w * 0.11, track.palette.glow);
+        else if (sc.type === "lavarock") Sprites.lavarock(sx, p1.y, p1.w * 0.14, track.palette.glow);
+        else if (sc.type === "coral") Sprites.coral(sx, p1.y, p1.w * 0.13, track.palette.glow);
       }
       for (const item of seg.items) {
         if (!item.alive) continue;
@@ -1610,6 +1716,13 @@
   function render() {
     const pal = track.palette;
     R.clear(pal.skyTop[0], pal.skyTop[1], pal.skyTop[2]);
+
+    // screen shake: jitter the whole frame, magnitude decaying via shakeT
+    if (shakeT > 0.05) {
+      R.setOffset((Math.random() * 2 - 1) * shakeT, (Math.random() * 2 - 1) * shakeT);
+    } else {
+      R.setOffset(0, 0);
+    }
 
     let camZ, camX, showPlayer;
     if (state === "menu" || state === "select") {
